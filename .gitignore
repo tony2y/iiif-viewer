@@ -1,0 +1,29 @@
+# 依赖
+node_modules
+
+# 构建产物
+dist
+dist-ssr
+# 演示站（GitHub Pages）构建产物
+demo-dist
+
+# 测试
+coverage
+
+# 编辑器 / 系统
+.idea
+.DS_Store
+*.local
+
+# 日志
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# 本地环境
+.env
+.env.*
+!.env.example
+
+# 包管理
+.npmrc.local

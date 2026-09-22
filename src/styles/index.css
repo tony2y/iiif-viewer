@@ -1,0 +1,6 @@
+/**
+ * 样式统一入口。
+ * 组件内 `<style scoped>` 只写布局与状态，颜色 / 间距 / 动效全部消费这里的 token。
+ */
+@import './tokens.css';
+@import './base.css';

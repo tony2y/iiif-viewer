@@ -1,0 +1,132 @@
+/**
+ * iiif-viewer 设计 token。
+ *
+ * 全部变量作用域限定在 `.iiif-viewer` 内，不污染宿主页面；
+ * 使用方可通过覆盖同名变量来定制主题。
+ *
+ * 默认主题为「暗色画廊」，`[data-theme='light']` 覆盖为亮色。
+ * 所有正文 / 次要文字与背景的对比度均 ≥ 4.5:1（已校验）。
+ */
+.iiif-viewer {
+  /* ---------- 基础色（暗色画廊，默认） ---------- */
+  --iiif-color-bg: #0b0c0e;
+  --iiif-color-surface: #141619;
+  --iiif-color-surface-2: #1c1f24;
+  --iiif-color-fg: #f4f5f7;
+  --iiif-color-fg-muted: #9ba1a9;
+  --iiif-color-border: rgba(255, 255, 255, 0.1);
+  --iiif-color-border-strong: rgba(255, 255, 255, 0.18);
+
+  /* ---------- 强调色 ---------- */
+  --iiif-color-accent: #0e7490;
+  --iiif-color-accent-hover: #0891b2;
+  --iiif-color-accent-fg: #ffffff;
+  --iiif-color-accent-text: #22d3ee;
+  --iiif-color-danger: #ef4444;
+  --iiif-color-danger-fg: #ffffff;
+  --iiif-color-danger-soft: rgba(239, 68, 68, 0.16);
+  --iiif-color-ring: #22d3ee;
+
+  /* ---------- 玻璃态覆盖层 ---------- */
+  --iiif-glass-bg: rgba(20, 22, 25, 0.72);
+  --iiif-glass-border: rgba(255, 255, 255, 0.14);
+  --iiif-glass-blur: 14px;
+  --iiif-overlay-scrim: rgba(6, 7, 9, 0.72);
+
+  /* ---------- OpenSeadragon 导航图 ---------- */
+  --iiif-navigator-bg: #0b0c0e;
+  --iiif-navigator-border: rgba(255, 255, 255, 0.18);
+  --iiif-navigator-region: #22d3ee;
+
+  /* ---------- 间距（8 基数节奏） ---------- */
+  --iiif-space-1: 4px;
+  --iiif-space-2: 8px;
+  --iiif-space-3: 12px;
+  --iiif-space-4: 16px;
+  --iiif-space-5: 24px;
+  --iiif-space-6: 32px;
+
+  /* ---------- 圆角 ---------- */
+  --iiif-radius-sm: 6px;
+  --iiif-radius-md: 10px;
+  --iiif-radius-lg: 14px;
+  --iiif-radius-full: 999px;
+
+  /* ---------- 阴影 ---------- */
+  --iiif-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.32);
+  --iiif-shadow-md: 0 6px 18px rgba(0, 0, 0, 0.36);
+  --iiif-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.44);
+
+  /* ---------- 排印 ---------- */
+  --iiif-font-ui:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', sans-serif;
+  --iiif-font-display: ui-serif, Georgia, 'Songti SC', 'Noto Serif SC', serif;
+  --iiif-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --iiif-font-size-xs: 11px;
+  --iiif-font-size-sm: 12px;
+  --iiif-font-size-md: 13px;
+  --iiif-font-size-lg: 15px;
+  --iiif-font-size-xl: 18px;
+  --iiif-line-height: 1.5;
+
+  /* ---------- 动效 ---------- */
+  --iiif-duration-fast: 150ms;
+  --iiif-duration: 200ms;
+  --iiif-duration-slow: 300ms;
+  --iiif-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  /* ---------- 层级与焦点 ---------- */
+  --iiif-z-stage: 1;
+  /* 覆盖层（加载 / 错误）：高于舞台、低于工具栏，保证加载中工具栏仍可操作 */
+  --iiif-z-overlay: 5;
+  /* 侧边面板：刻意低于工具栏，避免抽屉盖住悬浮工具栏导致按钮点不到 */
+  --iiif-z-panel: 15;
+  --iiif-z-toolbar: 20;
+  /* Tooltip / 弹出菜单 */
+  --iiif-z-popup: 30;
+  /* 面板内容底部留白，避免被悬浮工具栏遮住 */
+  --iiif-toolbar-clearance: 64px;
+  --iiif-focus-ring: 0 0 0 2px var(--iiif-color-bg), 0 0 0 4px var(--iiif-color-ring);
+}
+
+/* 亮色主题 */
+.iiif-viewer[data-theme='light'] {
+  --iiif-color-bg: #fafafa;
+  --iiif-color-surface: #ffffff;
+  --iiif-color-surface-2: #f1f3f5;
+  --iiif-color-fg: #09090b;
+  --iiif-color-fg-muted: #475569;
+  --iiif-color-border: #e4e4e7;
+  --iiif-color-border-strong: #d4d4d8;
+
+  --iiif-color-accent: #0e7490;
+  --iiif-color-accent-hover: #155e75;
+  --iiif-color-accent-fg: #ffffff;
+  --iiif-color-accent-text: #0e7490;
+  --iiif-color-danger: #dc2626;
+  --iiif-color-danger-fg: #ffffff;
+  --iiif-color-danger-soft: rgba(220, 38, 38, 0.12);
+  --iiif-color-ring: #0e7490;
+
+  --iiif-glass-bg: rgba(255, 255, 255, 0.74);
+  --iiif-glass-border: rgba(9, 9, 11, 0.1);
+  --iiif-overlay-scrim: rgba(250, 250, 250, 0.76);
+
+  --iiif-navigator-bg: #ffffff;
+  --iiif-navigator-border: rgba(9, 9, 11, 0.16);
+  --iiif-navigator-region: #0e7490;
+
+  --iiif-shadow-sm: 0 1px 2px rgba(9, 9, 11, 0.08);
+  --iiif-shadow-md: 0 6px 18px rgba(9, 9, 11, 0.1);
+  --iiif-shadow-lg: 0 16px 40px rgba(9, 9, 11, 0.14);
+}
+
+/* 尊重系统的「减弱动态效果」设置 */
+@media (prefers-reduced-motion: reduce) {
+  .iiif-viewer {
+    --iiif-duration-fast: 0.01ms;
+    --iiif-duration: 0.01ms;
+    --iiif-duration-slow: 0.01ms;
+  }
+}

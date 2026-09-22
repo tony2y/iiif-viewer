@@ -1,0 +1,423 @@
+/* playground 页面样式（仅本地演示使用，不参与库构建） */
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  /* 固定为可视高度：演示页自身不再滚动 */
+  height: 100%;
+}
+
+body {
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    'PingFang SC',
+    'Hiragino Sans GB',
+    'Microsoft YaHei',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  height: 100%;
+}
+
+.demo {
+  --demo-bg: #0b0c0e;
+  --demo-surface: #141619;
+  --demo-surface-2: #1c1f24;
+  --demo-fg: #f4f5f7;
+  --demo-fg-muted: #9ba1a9;
+  --demo-border: rgba(255, 255, 255, 0.1);
+  --demo-accent: #22d3ee;
+  --demo-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* 与视口等高且不滚动：查看器按真实可视高度适配，整页一次性完整展示 */
+  height: 100%;
+  overflow: hidden;
+  padding: 12px;
+  background:
+    radial-gradient(1200px 600px at 12% -10%, rgba(34, 211, 238, 0.09), transparent 60%),
+    var(--demo-bg);
+  color: var(--demo-fg);
+  transition:
+    background-color 200ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    color 200ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.demo[data-theme='light'] {
+  color-scheme: light;
+  --demo-bg: #fafafa;
+  --demo-surface: #ffffff;
+  --demo-surface-2: #f1f3f5;
+  --demo-fg: #09090b;
+  --demo-fg-muted: #475569;
+  --demo-border: #e4e4e7;
+  --demo-accent: #0e7490;
+  --demo-shadow: 0 18px 40px rgba(9, 9, 11, 0.14);
+  background: var(--demo-bg);
+}
+
+/* ---------- 顶部控制条 ---------- */
+
+.demo__bar {
+  /* 「更多」弹层的定位上下文 */
+  position: relative;
+  /* 高于查看器，保证弹层覆盖在预览区之上 */
+  z-index: 20;
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--demo-border);
+  border-radius: 12px;
+  background-color: var(--demo-surface);
+}
+
+.demo__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--demo-fg);
+}
+
+.demo__brand-text {
+  font-family: ui-serif, Georgia, 'Songti SC', 'Noto Serif SC', serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+/* 图标统一为 24×24 线性风格（与库内置图标一致），描边颜色继承 currentColor */
+.demo__brand-mark,
+.demo__icon {
+  display: block;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.demo__brand-mark {
+  width: 18px;
+  height: 18px;
+  color: var(--demo-accent);
+}
+
+.demo__icon {
+  width: 16px;
+  height: 16px;
+}
+
+.demo__bar-controls {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* 顶部栏资源下拉：随宽度伸缩，但不挤走图标按钮 */
+.demo__bar .demo__select--compact {
+  flex: 1 1 180px;
+  width: auto;
+  max-width: min(320px, 46vw);
+  min-height: 32px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.demo__segmented {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  padding: 1px;
+  border: 1px solid var(--demo-border);
+  border-radius: 10px;
+  background-color: var(--demo-surface-2);
+}
+
+.demo__icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background-color: transparent;
+  color: var(--demo-fg-muted);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 150ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    border-color 150ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    color 150ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.demo__icon-button:hover {
+  border-color: var(--demo-accent);
+  color: var(--demo-fg);
+}
+
+.demo__icon-button:active {
+  background-color: var(--demo-surface-2);
+}
+
+.demo__icon-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.22);
+}
+
+.demo__icon-button.demo__icon-button--active {
+  border-color: var(--demo-accent);
+  background-color: var(--demo-surface-2);
+  color: var(--demo-accent);
+}
+
+/* 语言按钮：图标 + 当前语言短标签 */
+.demo__icon-button--label {
+  width: auto;
+  padding: 0 8px;
+}
+
+.demo__icon-label {
+  font-variant-numeric: tabular-nums;
+}
+
+.demo__segmented .demo__icon-button {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+}
+
+.demo__icon-button--small {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+
+/* ---------- 「更多」弹层 ---------- */
+
+.demo__popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(360px, 92vw);
+  max-height: calc(100vh - 80px);
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid var(--demo-border);
+  border-radius: 14px;
+  background-color: var(--demo-surface);
+  box-shadow: var(--demo-shadow);
+  animation: demo-popover-in 160ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.demo__popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.demo__popover-title {
+  color: var(--demo-fg);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* 弹层内控件比原来的控制面板紧凑一档 */
+.demo__popover .demo__select,
+.demo__popover .demo__input,
+.demo__popover .demo__button {
+  min-height: 32px;
+  font-size: 12px;
+}
+
+.demo__note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--demo-border);
+}
+
+@keyframes demo-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---------- 弹层内的表单控件 ---------- */
+
+.demo__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.demo__label {
+  color: var(--demo-fg-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.demo__select,
+.demo__input {
+  width: 100%;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--demo-border);
+  border-radius: 8px;
+  background-color: var(--demo-bg);
+  color: var(--demo-fg);
+  font: inherit;
+  font-size: 13px;
+}
+
+.demo__select:focus-visible,
+.demo__input:focus-visible {
+  outline: none;
+  border-color: var(--demo-accent);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.22);
+}
+
+.demo__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.demo__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--demo-border);
+  border-radius: 8px;
+  background-color: var(--demo-surface-2);
+  color: var(--demo-fg);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background-color 150ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    border-color 150ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.demo__button:hover {
+  border-color: var(--demo-accent);
+}
+
+.demo__button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.22);
+}
+
+.demo__button--active {
+  border-color: var(--demo-accent);
+  color: var(--demo-accent);
+}
+
+/* ---------- 查看器区域 ---------- */
+
+.demo__stage {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+
+.demo__resize {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 320px;
+  min-height: 0;
+  max-width: 100%;
+  resize: horizontal;
+  overflow: hidden;
+}
+
+/* 查看器根节点自身没有高度（库内为 flex 列容器），由演示页撑满预览区 */
+.demo__resize > .iiif-viewer {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.demo__event {
+  flex: none;
+  margin: 0;
+  overflow: hidden;
+  color: var(--demo-fg-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.demo__hint {
+  margin: 0;
+  color: var(--demo-fg-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 720px) {
+  .demo {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .demo__brand-text {
+    font-size: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo__popover {
+    animation: none;
+  }
+}

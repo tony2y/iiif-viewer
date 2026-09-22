@@ -1,0 +1,96 @@
+{
+  "name": "@tony/iiif-viewer",
+  "version": "0.1.0",
+  "description": "A modern IIIF image viewer plugin for Vue 3, built on OpenSeadragon. Supports IIIF Image API 2.x/3.x and Presentation API multi-canvas reading, with built-in i18n, theming and responsive UI.",
+  "keywords": [
+    "iiif",
+    "viewer",
+    "image-viewer",
+    "openseadragon",
+    "vue",
+    "vue3",
+    "manifest",
+    "deep-zoom",
+    "digital-library",
+    "cultural-heritage"
+  ],
+  "author": "Tony",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "README_EN.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tony2y/iiif-viewer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tony2y/iiif-viewer/issues"
+  },
+  "homepage": "https://github.com/tony2y/iiif-viewer#readme",
+  "main": "./dist/index.umd.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.umd.cjs"
+    },
+    "./style.css": "./dist/iiif-viewer.css",
+    "./package.json": "./package.json"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "peerDependencies": {
+    "openseadragon": "^6.0.0",
+    "vue": "^3.5.0"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "demo:build": "vite build --config vite.demo.config.ts",
+    "demo:preview": "vite preview --config vite.demo.config.ts",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepublishOnly": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "@vitejs/plugin-vue": "^6.0.9",
+    "@vitest/coverage-v8": "^4.1.11",
+    "@vue/eslint-config-prettier": "^10.2.0",
+    "@vue/eslint-config-typescript": "^14.9.0",
+    "@vue/language-core": "^3.3.11",
+    "@vue/test-utils": "^2.5.1",
+    "eslint": "^10.11.0",
+    "eslint-plugin-vue": "^10.11.0",
+    "globals": "^17.12.0",
+    "jsdom": "^27.4.0",
+    "openseadragon": "^6.1.1",
+    "prettier": "^3.9.8",
+    "typescript": "~5.9.3",
+    "vite": "^8.3.0",
+    "vite-plugin-dts": "^5.1.1",
+    "vitest": "^4.1.11",
+    "vue": "^3.5.43",
+    "vue-tsc": "^3.3.11"
+  }
+}
