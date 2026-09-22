@@ -7,7 +7,7 @@
 [![vue](https://img.shields.io/badge/vue-%5E3.5-42b883)](https://vuejs.org/)
 [![openseadragon](https://img.shields.io/badge/openseadragon-%5E6.0-blue)](https://openseadragon.github.io/)
 
-**English** | [简体中文](./README.md)
+**English** | [简体中文](./README.md)· [Preview ](https://tony2y.github.io/iiif-viewer/)
 
 ---
 
