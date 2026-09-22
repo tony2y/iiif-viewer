@@ -1,5 +1,5 @@
 {
-  "name": "@tony/iiif-viewer",
+  "name": "@tony2y/iiif-viewer",
   "version": "0.1.0",
   "description": "A modern IIIF image viewer plugin for Vue 3, built on OpenSeadragon. Supports IIIF Image API 2.x/3.x and Presentation API multi-canvas reading, with built-in i18n, theming and responsive UI.",
   "keywords": [

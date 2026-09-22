@@ -2,7 +2,7 @@
 
 > 基于 **Vue 3 + Vite + TypeScript + OpenSeadragon** 的现代 IIIF 阅读器插件，可嵌入任意 Vue 3 应用。
 
-[![npm version](https://img.shields.io/badge/npm-0.1.0-blue)](https://www.npmjs.com/package/@tony/iiif-viewer)
+[![npm version](https://img.shields.io/badge/npm-0.1.0-blue)](https://www.npmjs.com/package/@tony2y/iiif-viewer)
 [![license](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 [![vue](https://img.shields.io/badge/vue-%5E3.5-42b883)](https://vuejs.org/)
 [![openseadragon](https://img.shields.io/badge/openseadragon-%5E6.0-blue)](https://openseadragon.github.io/)
@@ -13,7 +13,7 @@
 
 ## 1. 项目概述与核心功能
 
-`@tony/iiif-viewer` 是一个 Vue 3 组件库（同时提供插件形态），用于在网页中嵌入符合 [IIIF](https://iiif.io/) 标准的图像阅读器。渲染内核为 [OpenSeadragon](https://openseadragon.github.io/)，在深度缩放场景下以瓦片方式按需加载图像。
+`@tony2y/iiif-viewer` 是一个 Vue 3 组件库（同时提供插件形态），用于在网页中嵌入符合 [IIIF](https://iiif.io/) 标准的图像阅读器。渲染内核为 [OpenSeadragon](https://openseadragon.github.io/)，在深度缩放场景下以瓦片方式按需加载图像。
 
 ### 核心功能
 
@@ -55,7 +55,7 @@
 因此**库产物不含 OpenSeadragon 代码**，使用方必须自行安装一次，以避免同一页面出现多份 OSD（多份实例会各自注册全局事件与样式，导致交互异常）。
 
 ```bash
-pnpm add @tony/iiif-viewer openseadragon vue
+pnpm add @tony2y/iiif-viewer openseadragon vue
 ```
 
 少数场景下使用方需要**显式指定** OSD 来源，可通过组件 Prop `openseadragon`（或插件配置 `createIiifViewer({ openseadragon })`）传入，例如：CDN / `<script>` 引入只有一个 `window.OpenSeadragon`；使用自编译或被 patch 过的构建；页面同时存在多个 OSD 版本。
@@ -191,7 +191,7 @@ iiif-viewer/
 | `ERR_PNPM_UNSUPPORTED_ENGINE` 或 Vite 启动报 Node 版本错误 | Node 版本低于 20.19.0，请升级 Node                                                                          |
 | `Port 5173 is already in use`                              | 换端口：`pnpm dev --port 5188 --strictPort`                                                                 |
 | 安装时出现 peer 依赖警告                                   | 需同时安装 peer 依赖：`pnpm add vue openseadragon`（本仓库已作为 devDependencies 安装，供 playground 使用） |
-| 页面样式错乱（无边框 / 无玻璃态）                          | 未引入样式文件，请确认代码中包含 `import '@tony/iiif-viewer/style.css'`                                     |
+| 页面样式错乱（无边框 / 无玻璃态）                          | 未引入样式文件，请确认代码中包含 `import '@tony2y/iiif-viewer/style.css'`                                     |
 | 跨域瓦片在控制台出现 WebGL 纹理告警                        | 见 [6.3 常见问题与排查](#63-常见问题与排查)，推荐传入 `crossOriginPolicy: 'Anonymous'`                      |
 
 
@@ -201,10 +201,10 @@ iiif-viewer/
 
 ```bash
 # pnpm
-pnpm add @tony/iiif-viewer openseadragon
+pnpm add @tony2y/iiif-viewer openseadragon
 
 # npm
-npm install @tony/iiif-viewer openseadragon
+npm install @tony2y/iiif-viewer openseadragon
 ```
 
 ### 4.2 引入样式（必需）
@@ -212,7 +212,7 @@ npm install @tony/iiif-viewer openseadragon
 样式未内联到 JS 中，必须显式引入一次：
 
 ```ts
-import '@tony/iiif-viewer/style.css'
+import '@tony2y/iiif-viewer/style.css'
 ```
 
 ### 4.3 用法一：按需引入单个组件（推荐）
@@ -220,8 +220,8 @@ import '@tony/iiif-viewer/style.css'
 ```vue
 <!-- App.vue -->
 <script setup lang="ts">
-import { IiifViewer } from '@tony/iiif-viewer'
-import '@tony/iiif-viewer/style.css'
+import { IiifViewer } from '@tony2y/iiif-viewer'
+import '@tony2y/iiif-viewer/style.css'
 
 const source =
   'https://iiif.io/api/image/3.0/example/reference/918ecd18c2592080851777620de9bcb5-gottingen/info.json'
@@ -239,8 +239,8 @@ const source =
 ```ts
 // main.ts
 import { createApp } from 'vue'
-import { createIiifViewer } from '@tony/iiif-viewer'
-import '@tony/iiif-viewer/style.css'
+import { createIiifViewer } from '@tony2y/iiif-viewer'
+import '@tony2y/iiif-viewer/style.css'
 import App from './App.vue'
 
 createApp(App)
@@ -263,9 +263,9 @@ createApp(App)
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { IiifViewer } from '@tony/iiif-viewer'
-import type { IiifViewerExposed } from '@tony/iiif-viewer'
-import '@tony/iiif-viewer/style.css'
+import { IiifViewer } from '@tony2y/iiif-viewer'
+import type { IiifViewerExposed } from '@tony2y/iiif-viewer'
+import '@tony2y/iiif-viewer/style.css'
 
 // 该地址形如 /presentation/{id}，不含 "manifest" 字样：
 // 组件会先尝试 <url>/info.json，失败后回退请求原始地址并按响应内容识别为 manifest
@@ -300,8 +300,8 @@ function zoomIn() {
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { IiifViewer } from '@tony/iiif-viewer'
-import '@tony/iiif-viewer/style.css'
+import { IiifViewer } from '@tony2y/iiif-viewer'
+import '@tony2y/iiif-viewer/style.css'
 
 const locale = ref<'zh-CN' | 'en-US'>('zh-CN')
 const theme = ref<'dark' | 'light' | 'auto'>('dark')
@@ -337,9 +337,9 @@ const messages = {
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { IiifViewer } from '@tony/iiif-viewer'
-import type { IiifViewerExposed } from '@tony/iiif-viewer'
-import '@tony/iiif-viewer/style.css'
+import { IiifViewer } from '@tony2y/iiif-viewer'
+import type { IiifViewerExposed } from '@tony2y/iiif-viewer'
+import '@tony2y/iiif-viewer/style.css'
 
 const viewer = ref<IiifViewerExposed | null>(null)
 
@@ -369,10 +369,10 @@ function actions() {
 UMD 产物会暴露全局变量 `IiifViewer`，并把 `Vue`、`OpenSeadragon` 视为外部全局。
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/@tony/iiif-viewer/dist/iiif-viewer.css" />
+<link rel="stylesheet" href="https://unpkg.com/@tony2y/iiif-viewer/dist/iiif-viewer.css" />
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script src="https://unpkg.com/openseadragon@6/build/openseadragon/openseadragon.min.js"></script>
-<script src="https://unpkg.com/@tony/iiif-viewer/dist/index.umd.cjs"></script>
+<script src="https://unpkg.com/@tony2y/iiif-viewer/dist/index.umd.cjs"></script>
 
 <div id="app" style="height: 640px"></div>
 <script>
@@ -419,9 +419,9 @@ UMD 产物会暴露全局变量 `IiifViewer`，并把 `Vue`、`OpenSeadragon` �
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { IiifViewer } from '@tony/iiif-viewer'
-import type { IiifViewerExposed } from '@tony/iiif-viewer'
-import '@tony/iiif-viewer/style.css'
+import { IiifViewer } from '@tony2y/iiif-viewer'
+import type { IiifViewerExposed } from '@tony2y/iiif-viewer'
+import '@tony2y/iiif-viewer/style.css'
 
 const source = 'https://iiif.wellcomecollection.org/presentation/b18035723'
 const viewer = ref<IiifViewerExposed | null>(null)
@@ -454,9 +454,9 @@ function toSpread() {
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { IiifViewer } from '@tony/iiif-viewer'
-import type { IiifViewerExposed } from '@tony/iiif-viewer'
-import '@tony/iiif-viewer/style.css'
+import { IiifViewer } from '@tony2y/iiif-viewer'
+import type { IiifViewerExposed } from '@tony2y/iiif-viewer'
+import '@tony2y/iiif-viewer/style.css'
 
 const viewer = ref<IiifViewerExposed | null>(null)
 
@@ -490,8 +490,8 @@ function reset() {
 
 ```vue
 <script setup lang="ts">
-import { IiifViewer } from '@tony/iiif-viewer'
-import '@tony/iiif-viewer/style.css'
+import { IiifViewer } from '@tony2y/iiif-viewer'
+import '@tony2y/iiif-viewer/style.css'
 
 // 页面已通过 <script> 引入了某个 OSD 构建，显式指定其来源
 const osd = window.OpenSeadragon as typeof import('openseadragon')
@@ -805,7 +805,7 @@ import {
   useIiifSource,
   useOpenSeadragon,
   useViewerI18n,
-} from '@tony/iiif-viewer'
+} from '@tony2y/iiif-viewer'
 
 try {
   // 一次调用同时兼容 info.json 与 manifest（含内容二次判定与失败回退）

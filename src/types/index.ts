@@ -1,5 +1,5 @@
 /**
- * 类型统一出口。使用者可从 `@tony/iiif-viewer` 直接导入以下全部类型。
+ * 类型统一出口。使用者可从 `@tony2y/iiif-viewer` 直接导入以下全部类型。
  */
 export type {
   IiifCanvas,

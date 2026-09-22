@@ -1,16 +1,16 @@
 /**
- * @tony/iiif-viewer 公共入口。
+ * @tony2y/iiif-viewer 公共入口。
  *
  * 使用方式（二选一）：
  * ```ts
  * // 1. 全局注册（推荐配合插件配置）
- * import { createIiifViewer } from '@tony/iiif-viewer'
- * import '@tony/iiif-viewer/style.css'
+ * import { createIiifViewer } from '@tony2y/iiif-viewer'
+ * import '@tony2y/iiif-viewer/style.css'
  * app.use(createIiifViewer({ locale: 'zh-CN' }))
  *
  * // 2. 按需引入单个组件
- * import { IiifViewer } from '@tony/iiif-viewer'
- * import '@tony/iiif-viewer/style.css'
+ * import { IiifViewer } from '@tony2y/iiif-viewer'
+ * import '@tony2y/iiif-viewer/style.css'
  * ```
  */
 import type { App, Component, Plugin } from 'vue'

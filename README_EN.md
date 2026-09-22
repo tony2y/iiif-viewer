@@ -2,7 +2,7 @@
 
 > A modern IIIF image viewer plugin built on **Vue 3 + Vite + TypeScript + OpenSeadragon**. It can be embedded in any Vue 3 application.
 
-[![npm version](https://img.shields.io/badge/npm-0.1.0-blue)](https://www.npmjs.com/package/@tony/iiif-viewer)
+[![npm version](https://img.shields.io/badge/npm-0.1.0-blue)](https://www.npmjs.com/package/@tony2y/iiif-viewer)
 [![license](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 [![vue](https://img.shields.io/badge/vue-%5E3.5-42b883)](https://vuejs.org/)
 [![openseadragon](https://img.shields.io/badge/openseadragon-%5E6.0-blue)](https://openseadragon.github.io/)
@@ -13,7 +13,7 @@
 
 ## 1. Overview and Core Features
 
-`@tony/iiif-viewer` is a Vue 3 component library (also shipped as a plugin) for embedding an [IIIF](https://iiif.io/)-compliant image viewer into a web page. The rendering engine is [OpenSeadragon](https://openseadragon.github.io/), which loads images as tiles on demand for deep-zoom scenarios.
+`@tony2y/iiif-viewer` is a Vue 3 component library (also shipped as a plugin) for embedding an [IIIF](https://iiif.io/)-compliant image viewer into a web page. The rendering engine is [OpenSeadragon](https://openseadragon.github.io/), which loads images as tiles on demand for deep-zoom scenarios.
 
 ### Core features
 
@@ -55,7 +55,7 @@
 As a result, **the library artifacts contain no OpenSeadragon code**, and the consumer must install it once to avoid multiple copies of OSD on the same page (multiple instances each register global events and styles, which breaks interaction).
 
 ```bash
-pnpm add @tony/iiif-viewer openseadragon vue
+pnpm add @tony2y/iiif-viewer openseadragon vue
 ```
 
 In a few scenarios the consumer needs to **explicitly specify** the OSD source. Pass it through the `openseadragon` prop (or the plugin config `createIiifViewer({ openseadragon })`), for example: a CDN / `<script>` include where only `window.OpenSeadragon` is available; a self-compiled or patched OSD build; or multiple OSD versions coexisting on the page.
@@ -193,7 +193,7 @@ iiif-viewer/
 | `ERR_PNPM_UNSUPPORTED_ENGINE` or a Node version error when Vite starts | Node is older than 20.19.0; upgrade Node                                                                                                    |
 | `Port 5173 is already in use`                                          | Use another port: `pnpm dev --port 5188 --strictPort`                                                                                       |
 | A peer dependency warning during install                               | Install the peer dependencies as well: `pnpm add vue openseadragon` (this repo already installs them as devDependencies for the playground) |
-| Broken styles (no borders / no glassmorphism)                          | The stylesheet was not imported; make sure the code includes `import '@tony/iiif-viewer/style.css'`                                         |
+| Broken styles (no borders / no glassmorphism)                          | The stylesheet was not imported; make sure the code includes `import '@tony2y/iiif-viewer/style.css'`                                         |
 | WebGL texture warnings from cross-origin tiles in the console          | See [6.3 Troubleshooting](#63-troubleshooting); passing `crossOriginPolicy: 'Anonymous'` is recommended                                     |
 
 ---
@@ -204,10 +204,10 @@ iiif-viewer/
 
 ```bash
 # pnpm
-pnpm add @tony/iiif-viewer openseadragon
+pnpm add @tony2y/iiif-viewer openseadragon
 
 # npm
-npm install @tony/iiif-viewer openseadragon
+npm install @tony2y/iiif-viewer openseadragon
 ```
 
 ### 4.2 Import styles (required)
@@ -215,7 +215,7 @@ npm install @tony/iiif-viewer openseadragon
 Styles are not inlined into JS, so they must be imported once explicitly:
 
 ```ts
-import '@tony/iiif-viewer/style.css'
+import '@tony2y/iiif-viewer/style.css'
 ```
 
 ### 4.3 Option 1: Import a single component on demand (recommended)
@@ -223,8 +223,8 @@ import '@tony/iiif-viewer/style.css'
 ```vue
 <!-- App.vue -->
 <script setup lang="ts">
-import { IiifViewer } from '@tony/iiif-viewer'
-import '@tony/iiif-viewer/style.css'
+import { IiifViewer } from '@tony2y/iiif-viewer'
+import '@tony2y/iiif-viewer/style.css'
 
 const source =
   'https://iiif.io/api/image/3.0/example/reference/918ecd18c2592080851777620de9bcb5-gottingen/info.json'
@@ -242,8 +242,8 @@ const source =
 ```ts
 // main.ts
 import { createApp } from 'vue'
-import { createIiifViewer } from '@tony/iiif-viewer'
-import '@tony/iiif-viewer/style.css'
+import { createIiifViewer } from '@tony2y/iiif-viewer'
+import '@tony2y/iiif-viewer/style.css'
 import App from './App.vue'
 
 createApp(App)
@@ -266,9 +266,9 @@ After registration the following components are available globally: `IiifViewer`
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { IiifViewer } from '@tony/iiif-viewer'
-import type { IiifViewerExposed } from '@tony/iiif-viewer'
-import '@tony/iiif-viewer/style.css'
+import { IiifViewer } from '@tony2y/iiif-viewer'
+import type { IiifViewerExposed } from '@tony2y/iiif-viewer'
+import '@tony2y/iiif-viewer/style.css'
 
 // The address looks like /presentation/{id} and does not contain "manifest":
 // the component first tries <url>/info.json, then falls back to requesting the original
@@ -304,8 +304,8 @@ function zoomIn() {
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { IiifViewer } from '@tony/iiif-viewer'
-import '@tony/iiif-viewer/style.css'
+import { IiifViewer } from '@tony2y/iiif-viewer'
+import '@tony2y/iiif-viewer/style.css'
 
 const locale = ref<'zh-CN' | 'en-US'>('en-US')
 const theme = ref<'dark' | 'light' | 'auto'>('dark')
@@ -341,9 +341,9 @@ const messages = {
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { IiifViewer } from '@tony/iiif-viewer'
-import type { IiifViewerExposed } from '@tony/iiif-viewer'
-import '@tony/iiif-viewer/style.css'
+import { IiifViewer } from '@tony2y/iiif-viewer'
+import type { IiifViewerExposed } from '@tony2y/iiif-viewer'
+import '@tony2y/iiif-viewer/style.css'
 
 const viewer = ref<IiifViewerExposed | null>(null)
 
@@ -373,10 +373,10 @@ function actions() {
 The UMD artifact exposes the global `IiifViewer` and treats `Vue` and `OpenSeadragon` as external globals.
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/@tony/iiif-viewer/dist/iiif-viewer.css" />
+<link rel="stylesheet" href="https://unpkg.com/@tony2y/iiif-viewer/dist/iiif-viewer.css" />
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script src="https://unpkg.com/openseadragon@6/build/openseadragon/openseadragon.min.js"></script>
-<script src="https://unpkg.com/@tony/iiif-viewer/dist/index.umd.cjs"></script>
+<script src="https://unpkg.com/@tony2y/iiif-viewer/dist/index.umd.cjs"></script>
 
 <div id="app" style="height: 640px"></div>
 <script>
@@ -423,9 +423,9 @@ The UMD artifact exposes the global `IiifViewer` and treats `Vue` and `OpenSeadr
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { IiifViewer } from '@tony/iiif-viewer'
-import type { IiifViewerExposed } from '@tony/iiif-viewer'
-import '@tony/iiif-viewer/style.css'
+import { IiifViewer } from '@tony2y/iiif-viewer'
+import type { IiifViewerExposed } from '@tony2y/iiif-viewer'
+import '@tony2y/iiif-viewer/style.css'
 
 const source = 'https://iiif.wellcomecollection.org/presentation/b18035723'
 const viewer = ref<IiifViewerExposed | null>(null)
@@ -458,9 +458,9 @@ function toSpread() {
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { IiifViewer } from '@tony/iiif-viewer'
-import type { IiifViewerExposed } from '@tony/iiif-viewer'
-import '@tony/iiif-viewer/style.css'
+import { IiifViewer } from '@tony2y/iiif-viewer'
+import type { IiifViewerExposed } from '@tony2y/iiif-viewer'
+import '@tony2y/iiif-viewer/style.css'
 
 const viewer = ref<IiifViewerExposed | null>(null)
 
@@ -494,8 +494,8 @@ function reset() {
 
 ```vue
 <script setup lang="ts">
-import { IiifViewer } from '@tony/iiif-viewer'
-import '@tony/iiif-viewer/style.css'
+import { IiifViewer } from '@tony2y/iiif-viewer'
+import '@tony2y/iiif-viewer/style.css'
 
 // The page already loaded an OSD build via <script>; point at its source explicitly
 const osd = window.OpenSeadragon as typeof import('openseadragon')
@@ -809,7 +809,7 @@ import {
   useIiifSource,
   useOpenSeadragon,
   useViewerI18n,
-} from '@tony/iiif-viewer'
+} from '@tony2y/iiif-viewer'
 
 try {
   // One call handles both info.json and manifest (with response-body re-check and failure fallback)
