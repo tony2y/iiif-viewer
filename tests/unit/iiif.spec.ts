@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { IiifViewerError } from '../../src/core/errors'
+import { IiifViewerError } from '@/core/errors'
 import {
+  DEFAULT_ANIMATION_TIME,
+  DEFAULT_SPRING_STIFFNESS,
+  REDUCED_MOTION_SPRING_STIFFNESS,
   createOsdOptions,
   detectResourceKind,
   fetchJson,
@@ -15,8 +18,11 @@ import {
   parseMetadata,
   pickImageUrl,
   pickLabel,
+  resolveMotionSettings,
+  tileSourceKey,
   toTileSource,
-} from '../../src/core/iiif'
+} from '@/core/iiif'
+import { resolvePageTransitionOptions } from '@/types'
 import { jsonResponse } from '../helpers'
 
 /** Image API 3.0 的 info.json 片段 */
@@ -487,6 +493,48 @@ describe('core/iiif · tileSource 转换', () => {
   })
 })
 
+describe('core/iiif · tileSourceKey', () => {
+  it('内容相同的不同数组得到相同签名', () => {
+    const first = ['https://a.com/1/info.json', 'https://a.com/2/info.json']
+    const second = [...first]
+
+    expect(second).not.toBe(first)
+    expect(tileSourceKey(second)).toBe(tileSourceKey(first))
+  })
+
+  it('换页后签名随之变化', () => {
+    expect(tileSourceKey(['https://a.com/2/info.json'])).not.toBe(
+      tileSourceKey(['https://a.com/1/info.json']),
+    )
+  })
+
+  it('空列表得到空签名', () => {
+    expect(tileSourceKey([])).toBe('')
+  })
+
+  it('顺序参与签名，双页左右互换视为不同资源', () => {
+    expect(tileSourceKey(['a', 'b'])).not.toBe(tileSourceKey(['b', 'a']))
+  })
+
+  it('内联 tileSource 按配置快照比较', () => {
+    const key = tileSourceKey([{ type: 'image', url: 'https://a.com/a.jpg' }])
+
+    expect(tileSourceKey([{ type: 'image', url: 'https://a.com/a.jpg' }])).toBe(key)
+    // 地址相同但配置不同 → 必须视为新资源，不能跳过 open
+    expect(
+      tileSourceKey([{ type: 'image', url: 'https://a.com/a.jpg', buildPyramid: true }]),
+    ).not.toBe(key)
+  })
+
+  it('无法序列化的内联对象回退为字符串描述且不抛错', () => {
+    const circular: Record<string, unknown> = { type: 'image', url: 'https://a.com/a.jpg' }
+    circular.self = circular
+
+    expect(() => tileSourceKey([circular as never])).not.toThrow()
+    expect(tileSourceKey([circular as never])).toContain('tile-source:')
+  })
+})
+
 describe('core/iiif · fetchJson', () => {
   it('非 2xx 抛出 HTTP_ERROR 并携带状态码', async () => {
     vi.stubGlobal(
@@ -613,8 +661,73 @@ describe('core/iiif · createOsdOptions', () => {
     expect(options.gestureSettingsMouse?.scrollToZoom).toBe(true)
   })
 
-  it('减弱动效时动画时长归零', () => {
-    expect(createOsdOptions({ reducedMotion: true }).animationTime).toBe(0)
-    expect(createOsdOptions({ reducedMotion: false }).animationTime).toBe(1.2)
+  it('默认保留视口，翻页不会被 OSD 拉回初始视图', () => {
+    expect(createOsdOptions().preserveViewport).toBe(true)
+  })
+
+  it('默认动效参数比 OSD 原生更跟手，减弱动效时归零', () => {
+    const normal = createOsdOptions({ reducedMotion: false })
+    expect(normal.animationTime).toBe(DEFAULT_ANIMATION_TIME)
+    expect(normal.springStiffness).toBe(DEFAULT_SPRING_STIFFNESS)
+
+    const reduced = createOsdOptions({ reducedMotion: true })
+    expect(reduced.animationTime).toBe(0)
+    expect(reduced.springStiffness).toBe(REDUCED_MOTION_SPRING_STIFFNESS)
+  })
+
+  it('resolveMotionSettings 与 createOsdOptions 取值一致', () => {
+    expect(resolveMotionSettings(false)).toEqual({
+      animationTime: DEFAULT_ANIMATION_TIME,
+      springStiffness: DEFAULT_SPRING_STIFFNESS,
+    })
+    expect(resolveMotionSettings(true)).toEqual({
+      animationTime: 0,
+      springStiffness: REDUCED_MOTION_SPRING_STIFFNESS,
+    })
+
+    const options = createOsdOptions({ reducedMotion: true })
+    expect(options.animationTime).toBe(resolveMotionSettings(true).animationTime)
+    expect(options.springStiffness).toBe(resolveMotionSettings(true).springStiffness)
+  })
+})
+
+describe('types/viewer · resolvePageTransitionOptions', () => {
+  it('默认不启用过渡', () => {
+    expect(resolvePageTransitionOptions(undefined)).toBeNull()
+    expect(resolvePageTransitionOptions(false)).toBeNull()
+    expect(resolvePageTransitionOptions('none')).toBeNull()
+  })
+
+  it('true 等价于默认预设，字符串按预设名解析', () => {
+    expect(resolvePageTransitionOptions(true)).toMatchObject({ preset: 'fade' })
+    expect(resolvePageTransitionOptions('zoom-swap')).toMatchObject({
+      preset: 'zoom-swap',
+      duration: 260,
+    })
+  })
+
+  it('细项配置与默认值合并，duration 取非负整数', () => {
+    expect(
+      resolvePageTransitionOptions({ preset: 'fade', duration: 120, easing: 'linear' }),
+    ).toEqual({
+      preset: 'fade',
+      duration: 120,
+      easing: 'linear',
+    })
+    // 非法 duration 回退默认值
+    expect(resolvePageTransitionOptions({ preset: 'fade', duration: Number.NaN })?.duration).toBe(
+      260,
+    )
+    // 负数按 0 处理，0 表示不做过渡
+    expect(resolvePageTransitionOptions({ preset: 'fade', duration: -100 })).toBeNull()
+  })
+
+  it('减弱动效时自动降级，可用 respectReducedMotion 覆盖', () => {
+    expect(resolvePageTransitionOptions('fade', true)).toBeNull()
+    expect(
+      resolvePageTransitionOptions({ preset: 'fade', respectReducedMotion: false }, true),
+    ).toMatchObject({ preset: 'fade' })
+    // 未开启减弱动效时不受影响
+    expect(resolvePageTransitionOptions('fade', false)).toMatchObject({ preset: 'fade' })
   })
 })

@@ -120,10 +120,18 @@ const description = computed(() => t(`errors.${props.error.code}.desc`))
   letter-spacing: 0.04em;
 }
 
+/*
+ * ViewerButton 的根元素是 Tooltip 包裹层，写在这里的 class 落在包裹层上，
+ * 真正的 <button> 要用 :deep() 才能选中。否则按钮保持 36×36 的图标按钮尺寸，
+ * 图标 + 文字横向溢出，视觉上就是「重试按钮宽度不够」。
+ */
 .iiif-error__retry {
+  margin-top: var(--iiif-space-2);
+}
+
+.iiif-error__retry :deep(.iiif-viewer__btn) {
   width: auto;
   height: auto;
-  margin-top: var(--iiif-space-2);
   padding: var(--iiif-space-2) var(--iiif-space-4);
   gap: var(--iiif-space-2);
 }

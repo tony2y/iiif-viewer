@@ -7,7 +7,7 @@
 [![vue](https://img.shields.io/badge/vue-%5E3.5-42b883)](https://vuejs.org/)
 [![openseadragon](https://img.shields.io/badge/openseadragon-%5E6.0-blue)](https://openseadragon.github.io/)
 
-**简体中文** | [English](./README_EN.md) · [在线预览](https://tony2y.github.io/iiif-viewer/)
+**简体中文** | [English](./README_EN.md) | [在线预览](https://tony2y.github.io/iiif-viewer/)
 
 ---
 
@@ -18,16 +18,16 @@
 ### 核心功能
 
 | 分类            | 能力                                                                                                                                                                                                       |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|-----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **IIIF 标准**   | IIIF **Image API 2.x / 3.x**（`info.json`）；IIIF **Presentation API 2.1 / 3.0**（`manifest.json` 多画布翻阅）；标签语言映射、metadata / rights / provider / thumbnail 归一化                              |
 | **输入识别**    | 自动识别「Image API 服务基址」「`info.json` 地址」「`manifest.json` 地址」「静态图片地址」「OSD tileSource」；URL 启发式识别失败时**按响应内容二次判定**（兼容 `/presentation/{id}` 等非常规地址）         |
 | **图像交互**    | 缩放（滚轮 / 双击 / 按钮 / 键盘）、平移拖拽、任意角度旋转、水平翻转、复位、全屏、OSD 内置导航图                                                                                                            |
-| **多画布**      | 上一页 / 下一页、页码状态、缩略图条（缩略图缺失时自动回退到 Image API 的 `full/!120,120/0/default.jpg`）                                                                                                   |
+| **多画布**      | 上一页 / 下一页、页码状态、缩略图条（缩略图缺失时自动回退到 Image API 的 `full/!120,120/0/default.jpg`）；翻页保留当前缩放与平移，可选用 `fade` / `zoom-swap` 过渡                                         |
 | **单页/双页**   | 单页 / 双页展开切换（工具栏按钮、`initialDoublePage` Prop 与 `setDoublePage()` / `toggleDoublePage()`）；双页下标吸附到偶数、翻页步进为 2，**两页等高且书脊处紧贴无缝**，最后一跨页只剩 1 页时单页满宽显示 |
 | **色彩调节**    | 亮度 / 对比度 / 饱和度实时调节：工具栏单按钮 → 右侧滑出面板，合成一条 CSS `filter` 作用于画布（导航图不受影响，三种绘制器通用，不重拉瓦片）                                                                |
 | **目录（TOC）** | 解析 IIIF `structures`（v2 `ranges` / v3 `items`）为统一目录树；信息面板「目录 / 作品信息」双 Tab，点击条目跳转并高亮当前页                                                                                |
 | **界面**        | 暗色画廊主题（默认）/ 亮色主题 / 跟随系统；玻璃态悬浮工具栏，支持上下左右四种停靠位置；加载骨架与进度环；错误卡片（带错误码与重试）；元数据抽屉面板                                                        |
-| **国际化**      | 内置 `zh-CN` / `en-US`，零额外运行时依赖；支持通过 `messages` 覆盖或扩展文案；manifest 标签随语言切换即时重新解析（不重新发请求）                                                                          |
+| **国际化**      | 内置 `zh-CN` / `en-US`，零额外运行时依赖；支持通过 `messages` 覆盖或扩展文案                                                                                                                               |
 | **响应式**      | 基于 CSS 容器查询（`@container`），与视口宽度解耦；窄容器下工具栏自动精简并收进「更多」菜单                                                                                                                |
 | **无障碍**      | 所有控件具备可访问名称与可见焦点环；图标为装饰性并对无障碍树隐藏；快捷键提示对屏幕阅读器可读；完整支持 `prefers-reduced-motion`                                                                            |
 | **类型安全**    | 全量 TypeScript 类型定义（Props / Emits / Slots / Expose / 核心能力 / IIIF 结构），产物附带 `.d.ts`                                                                                                        |
@@ -55,7 +55,7 @@
 因此**库产物不含 OpenSeadragon 代码**，使用方必须自行安装一次，以避免同一页面出现多份 OSD（多份实例会各自注册全局事件与样式，导致交互异常）。
 
 ```bash
-pnpm add @tony2y/iiif-viewer openseadragon vue
+pnpm add @tony2y/iiif-viewer openseadragon
 ```
 
 少数场景下使用方需要**显式指定** OSD 来源，可通过组件 Prop `openseadragon`（或插件配置 `createIiifViewer({ openseadragon })`）传入，例如：CDN / `<script>` 引入只有一个 `window.OpenSeadragon`；使用自编译或被 patch 过的构建；页面同时存在多个 OSD 版本。
@@ -191,7 +191,7 @@ iiif-viewer/
 | `ERR_PNPM_UNSUPPORTED_ENGINE` 或 Vite 启动报 Node 版本错误 | Node 版本低于 20.19.0，请升级 Node                                                                          |
 | `Port 5173 is already in use`                              | 换端口：`pnpm dev --port 5188 --strictPort`                                                                 |
 | 安装时出现 peer 依赖警告                                   | 需同时安装 peer 依赖：`pnpm add vue openseadragon`（本仓库已作为 devDependencies 安装，供 playground 使用） |
-| 页面样式错乱（无边框 / 无玻璃态）                          | 未引入样式文件，请确认代码中包含 `import '@tony2y/iiif-viewer/style.css'`                                     |
+| 页面样式错乱（无边框 / 无玻璃态）                          | 未引入样式文件，请确认代码中包含 `import '@tony2y/iiif-viewer/style.css'`                                   |
 | 跨域瓦片在控制台出现 WebGL 纹理告警                        | 见 [6.3 常见问题与排查](#63-常见问题与排查)，推荐传入 `crossOriginPolicy: 'Anonymous'`                      |
 
 
@@ -520,7 +520,7 @@ const osd = window.OpenSeadragon as typeof import('openseadragon')
 | `messages`          | `Record<string, string>`                    | `undefined`                                 | 覆盖 / 扩展内置文案，key 见 [5.6 文案 key](#56-文案-key)                                                      |
 | `theme`             | `'dark' \| 'light' \| 'auto'`               | 插件配置 → `'dark'`                         | `auto` 表示跟随系统 `prefers-color-scheme`                                                                    |
 | `toolbar`           | `boolean \| IiifViewerToolbarOptions`       | `true`                                      | `false` 隐藏工具栏；传对象可逐项开关，见 [5.2 工具栏配置](#52-工具栏配置)                                     |
-| `showNavigator`     | `boolean`                                   | `true`                                      | 是否显示 OSD 内置导航图                                                                                       |
+| `showNavigator`     | `boolean`                                   | `true`                                      | 是否显示右上角的导航图（小地图）；运行期修改即时生效（初始为 `false` 时改为 `true` 会重建实例）               |
 | `showStatusBar`     | `boolean`                                   | `true`                                      | 是否显示底部状态栏                                                                                            |
 | `showThumbnails`    | `boolean`                                   | `false`                                     | 缩略图条的**初始**展开状态；仅多画布生效，单画布自动不渲染                                                    |
 | `showInfoPanel`     | `boolean`                                   | `false`                                     | 元数据面板的**初始**展开状态                                                                                  |
@@ -534,6 +534,7 @@ const osd = window.OpenSeadragon as typeof import('openseadragon')
 | `osdOptions`        | `Partial<OpenSeadragon.Options>`            | `undefined`                                 | 透传 / 覆盖 OpenSeadragon 原生配置，**优先级最高**                                                            |
 | `initialDoublePage` | `boolean`                                   | `false`                                     | 初始是否以「双页展开」显示；运行期修改该 Prop 也会同步切换，等价于调用 `setDoublePage()`                      |
 | `colorAdjust`       | `boolean`                                   | `true`                                      | 是否启用「亮度 / 对比度 / 饱和度」调节；`false` 时隐藏按钮、不渲染面板并清除画面滤镜                          |
+| `pageTransition`    | `IiifViewerPageTransition`                  | `false`                                     | 翻页 / 换资源过渡：`false` 关闭，或传 `'fade'` / `'zoom-swap'` 预设名与细项配置；减弱动效时自动降级           |
 | `openseadragon`     | `OpenseadragonNamespace`                    | `undefined`                                 | 显式指定 OpenSeadragon 来源（不传则用 peerDependency）；传入对象会经 `verifyOpenSeadragon()` 校验             |
 
 #### 与 OSD 的默认配置差异
@@ -553,11 +554,11 @@ const osd = window.OpenSeadragon as typeof import('openseadragon')
   navigatorAutoFade: false,
   visibilityRatio: 0.6,
   constrainDuringPan: false,
-  preserveViewport: false,
+  preserveViewport: true,           // 由组件决定何时重新适配，翻页因此不会整幅复位
   wrapHorizontal: false,
   wrapVertical: false,
-  animationTime: 1.2,               // prefers-reduced-motion 时为 0
-  springStiffness: 6.5,             // prefers-reduced-motion 时为 100
+  animationTime: 0.8,               // prefers-reduced-motion 时为 0
+  springStiffness: 10,              // prefers-reduced-motion 时为 100
   gestureSettingsMouse: { scrollToZoom: true, clickToZoom: false, dblClickToZoom: true, pinchToZoom: true, flickEnabled: true, flickMomentum: 0.18, pinchRotate: false },
   gestureSettingsTouch: { pinchToZoom: true, dblClickToZoom: true, flickEnabled: true, flickMomentum: 0.18, pinchRotate: false },
 }
@@ -589,27 +590,29 @@ interface IiifViewerToolbarOptions {
 <IiifViewer :source="source" :toolbar="false" />
 ```
 
-窄容器（宽度 < 480px）下，工具栏只保留 `缩小 / 放大 / 复位 / 全屏`，其余动作自动收进「更多」弹出菜单。
+窄容器（宽度 < 480px）下，工具栏只保留 `缩小 / 放大 / 复位 / 向左旋转 / 向右旋转 / 全屏`，其余动作自动收进「更多」弹出菜单。
 
 ### 5.3 Events
 
-| 事件                 | 载荷                                        | 触发时机                                                               |
-| -------------------- | ------------------------------------------- | ---------------------------------------------------------------------- |
-| `ready`              | `viewer: OpenSeadragon.Viewer`              | OpenSeadragon 实例创建完成                                             |
-| `destroy`            | —                                           | 组件卸载、实例销毁                                                     |
-| `load-start`         | `source: IiifViewerSource`                  | 开始加载资源                                                           |
-| `load-success`       | `{ kind, imageInfo?, manifest?, canvases }` | 资源加载成功（`kind` ∈ `info` / `manifest` / `image` / `tile-source`） |
-| `load-error`         | `error: IiifViewerErrorLike`                | 资源加载失败（含 `code` 与 `i18nKey`）                                 |
-| `zoom-change`        | `zoom: number`                              | 缩放百分比变化（100 表示 1:1）                                         |
-| `rotation-change`    | `degrees: number`                           | 旋转角度变化（0–359）                                                  |
-| `flip-change`        | `flipped: boolean`                          | 翻转状态变化                                                           |
-| `page-change`        | `{ index: number; total: number }`          | 画布切换（`index` 从 0 开始）                                          |
-| `double-page-change` | `value: boolean`                            | 单页 / 双页模式切换                                                    |
-| `colors-change`      | `colors: IiifColorAdjustments`              | 色彩调节值变化（已归一化）                                             |
-| `color-toggle`       | `open: boolean`                             | 色彩调节面板开合                                                       |
-| `fullscreen-change`  | `value: boolean`                            | 全屏状态变化                                                           |
-| `progress-change`    | `percent: number`                           | 瓦片加载进度变化（0–100）                                              |
-| `info-toggle`        | `open: boolean`                             | 元数据面板开合                                                         |
+| 事件                    | 载荷                                        | 触发时机                                                               |
+| ----------------------- | ------------------------------------------- | ---------------------------------------------------------------------- |
+| `ready`                 | `viewer: OpenSeadragon.Viewer`              | OpenSeadragon 实例创建完成                                             |
+| `destroy`               | —                                           | 组件卸载、实例销毁                                                     |
+| `load-start`            | `source: IiifViewerSource`                  | 开始加载资源                                                           |
+| `load-success`          | `{ kind, imageInfo?, manifest?, canvases }` | 资源加载成功（`kind` ∈ `info` / `manifest` / `image` / `tile-source`） |
+| `load-error`            | `error: IiifViewerErrorLike`                | 资源加载失败（含 `code` 与 `i18nKey`）                                 |
+| `zoom-change`           | `zoom: number`                              | 缩放百分比变化（100 表示 1:1）                                         |
+| `rotation-change`       | `degrees: number`                           | 旋转角度变化（0–359）                                                  |
+| `flip-change`           | `flipped: boolean`                          | 翻转状态变化                                                           |
+| `page-change`           | `{ index: number; total: number }`          | 画布切换（`index` 从 0 开始）                                          |
+| `double-page-change`    | `value: boolean`                            | 单页 / 双页模式切换                                                    |
+| `colors-change`         | `colors: IiifColorAdjustments`              | 色彩调节值变化（已归一化）                                             |
+| `color-toggle`          | `open: boolean`                             | 色彩调节面板开合                                                       |
+| `fullscreen-change`     | `value: boolean`                            | 全屏状态变化                                                           |
+| `progress-change`       | `percent: number`                           | 瓦片加载进度变化（0–100）                                              |
+| `info-toggle`           | `open: boolean`                             | 元数据面板开合                                                         |
+| `page-transition-start` | `IiifViewerPageTransitionPayload`           | 翻页过渡开始（未启用 `pageTransition` 时不派发）                       |
+| `page-transition-end`   | `IiifViewerPageTransitionPayload`           | 翻页过渡结束；被新的过渡中断时同样派发                                 |
 
 ### 5.4 Slots
 
@@ -637,6 +640,7 @@ interface IiifViewerToolbarOptions {
 | `prevPage()` / `nextPage()`       | `() => void`                                       | 上一 / 下一画布                                               |
 | `setDoublePage(enabled)`          | `(enabled: boolean) => void`                       | 设置双页展开模式（切到双页时把当前页吸附到跨页起点）          |
 | `toggleDoublePage()`              | `() => void`                                       | 切换双页展开模式                                              |
+| `setNavigatorVisible(v)`          | `(visible: boolean) => void`                       | 显示 / 隐藏右上角导航图，等价于 `showNavigator` Prop          |
 | `setColors(partial)`              | `(partial: Partial<IiifColorAdjustments>) => void` | 设置色彩调节（可只传部分字段，其余保持当前值）                |
 | `resetColors()`                   | `() => void`                                       | 重置色彩调节为中性值（100 / 100 / 100）                       |
 | `toggleFullscreen()`              | `() => void`                                       | 切换全屏                                                      |
@@ -708,6 +712,7 @@ interface IiifViewerToolbarOptions {
 | `osdOptions`        | `Partial<OpenSeadragon.Options>`      | `undefined` | 全局默认 OSD 配置           |
 | `initialDoublePage` | `boolean`                             | `undefined` | 全局默认是否为双页展开      |
 | `colorAdjust`       | `boolean`                             | `undefined` | 全局是否启用色彩调节模块    |
+| `pageTransition`    | `IiifViewerPageTransition`            | `undefined` | 全局默认翻页过渡效果        |
 | `openseadragon`     | `OpenseadragonNamespace`              | `undefined` | 全局指定 OpenSeadragon 实例 |
 
 优先顺序：**组件 Props > 插件配置 > 内置默认值**。
@@ -742,6 +747,7 @@ interface IiifViewerToolbarOptions {
 |        | `--iiif-color-danger-soft`                                          | `rgba(239,68,68,.16)`             | `rgba(220,38,38,.12)`   |
 |        | `--iiif-color-ring`                                                 | `#22d3ee`                         | `#0e7490`               |
 | 玻璃态 | `--iiif-glass-bg`                                                   | `rgba(20,22,25,.72)`              | `rgba(255,255,255,.74)` |
+|        | `--iiif-popup-bg`                                                   | `rgba(20,22,25,.94)`              | `rgba(255,255,255,.96)` |
 |        | `--iiif-glass-border`                                               | `rgba(255,255,255,.14)`           | `rgba(9,9,11,.1)`       |
 |        | `--iiif-glass-blur`                                                 | `14px`                            | 同                      |
 |        | `--iiif-overlay-scrim`                                              | `rgba(6,7,9,.72)`                 | `rgba(250,250,250,.76)` |
@@ -800,6 +806,7 @@ import {
   buildImageFilter,
   verifyOpenSeadragon,
   toTileSource,
+  tileSourceKey,
   createOsdOptions,
   resolveUrl,
   useIiifSource,
@@ -834,14 +841,14 @@ try {
 - 元数据面板与色彩调节面板使用 `role="dialog"` + `aria-labelledby`，打开时聚焦关闭按钮、关闭时归还焦点，支持 `Esc`；色彩滑杆带 `<label for>` 与 `aria-valuetext`
 - 信息面板的「目录 / 作品信息」Tab 使用 `role="tablist" / "tab" / "tabpanel"` + roving `tabindex`，支持 `←` `→` `Home` `End` 切换（焦点移动即激活）
 - 触摸设备下按钮命中区自动放大到 44×44px
-- 完整支持 `prefers-reduced-motion: reduce`
+- 完整支持 `prefers-reduced-motion: reduce`：运行期切换即时生效，翻页过渡同时自动降级为无动画
 
 ### 6.2 响应式行为
 
-| 容器宽度 | 行为                                                                                                                                         |
-| -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| ≥ 480px  | 完整工具栏、状态栏显示标题与旋转/翻转信息、缩略图 60×60                                                                                      |
-| < 480px  | 工具栏精简为「缩小 / 放大 / 复位 / 全屏 / ⋯更多」；左右停靠自动降级为贴底；状态栏精简为「页码 + 缩放」；缩略图 48×48；元数据面板改为底部抽屉 |
+| 容器宽度 | 行为                                                                                                                                                               |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ≥ 480px  | 完整工具栏、状态栏显示标题与旋转/翻转信息、缩略图 60×60                                                                                                            |
+| < 480px  | 工具栏精简为「缩小 / 放大 / 复位 / 向左旋转 / 向右旋转 / 全屏 / ⋯更多」；左右停靠自动降级为贴底；状态栏精简为「页码 + 缩放」；缩略图 48×48；元数据面板改为底部抽屉 |
 
 判断依据是**组件容器的实际宽度**（CSS 容器查询 + `ResizeObserver`），与浏览器视口宽度解耦，因此在任意布局中都能正确响应。
 

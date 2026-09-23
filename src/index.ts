@@ -102,11 +102,14 @@ export type {
   UseViewerI18nOptions,
   UseViewerI18nReturn,
 } from '@/composables/useViewerI18n'
-export { ZOOM_STEP, useOpenSeadragon } from '@/composables/useOpenSeadragon'
+export { ZOOM_STEP, ZOOM_SWAP_RATIO, useOpenSeadragon } from '@/composables/useOpenSeadragon'
 export type {
+  OpenTileSourcesOptions,
+  OpenTransitionOptions,
   UseOpenSeadragonOptions,
   UseOpenSeadragonReturn,
 } from '@/composables/useOpenSeadragon'
+export { REDUCED_MOTION_QUERY, useReducedMotion } from '@/composables/useReducedMotion'
 export { useIiifSource } from '@/composables/useIiifSource'
 export type {
   IiifLoadStatus,
@@ -121,7 +124,10 @@ export type {
 
 export { IiifViewerError, isIiifViewerError } from '@/core/errors'
 export {
+  DEFAULT_ANIMATION_TIME,
+  DEFAULT_SPRING_STIFFNESS,
   DEFAULT_TIMEOUT,
+  REDUCED_MOTION_SPRING_STIFFNESS,
   createOsdOptions,
   detectResourceKind,
   fetchJson,
@@ -140,6 +146,8 @@ export {
   pickImageUrl,
   pickLabel,
   prefersReducedMotion,
+  resolveMotionSettings,
+  tileSourceKey,
   toTileSource,
 } from '@/core/iiif'
 export type { FetchJsonOptions, IiifDocument, OsdOptionInput } from '@/core/iiif'

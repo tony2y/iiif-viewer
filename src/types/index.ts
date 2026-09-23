@@ -39,6 +39,10 @@ export type {
   IiifViewerExposed,
   IiifViewerFitMode,
   IiifViewerLoadSuccessPayload,
+  IiifViewerPageTransition,
+  IiifViewerPageTransitionOptions,
+  IiifViewerPageTransitionPayload,
+  IiifViewerPageTransitionPreset,
   IiifViewerPluginOptions,
   IiifViewerProps,
   IiifViewerSource,
@@ -49,7 +53,13 @@ export type {
   IiifViewerToolbarOptions,
   IiifViewerToolbarPosition,
   OpenseadragonNamespace,
+  ResolvedPageTransitionOptions,
   ResolvedToolbarOptions,
 } from './viewer'
 
-export { DEFAULT_TOOLBAR_OPTIONS, resolveToolbarOptions } from './viewer'
+export {
+  DEFAULT_PAGE_TRANSITION_OPTIONS,
+  DEFAULT_TOOLBAR_OPTIONS,
+  resolvePageTransitionOptions,
+  resolveToolbarOptions,
+} from './viewer'

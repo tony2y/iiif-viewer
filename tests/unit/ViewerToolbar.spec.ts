@@ -1,14 +1,14 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
-import ViewerToolbar from '../../src/components/ViewerToolbar.vue'
-import { useViewerI18n, IIIF_VIEWER_I18N_KEY } from '../../src/composables/useViewerI18n'
-import { DEFAULT_TOOLBAR_OPTIONS } from '../../src/types/viewer'
+import ViewerToolbar from '@/components/ViewerToolbar.vue'
+import { useViewerI18n, IIIF_VIEWER_I18N_KEY } from '@/composables/useViewerI18n'
+import { DEFAULT_TOOLBAR_OPTIONS } from '@/types'
 import type {
   IiifViewerState,
   IiifViewerToolbarAction,
   ResolvedToolbarOptions,
-} from '../../src/types/viewer'
+} from '@/types'
 
 /** 固定为中文，避免受运行环境语言影响 */
 const i18n = useViewerI18n({ locale: 'zh-CN' })
@@ -123,13 +123,14 @@ describe('ViewerToolbar', () => {
     expect(wrapper.find('button[aria-label="缩略图"]').exists()).toBe(false)
   })
 
-  it('窄容器下只保留核心动作，其余收进「更多」菜单', async () => {
+  it('窄容器下保留缩放 / 复位 / 旋转 / 全屏，其余收进「更多」菜单', async () => {
     const wrapper = mountToolbar({ total: 3, canGoNext: true }, {}, { compact: true })
 
     expect(wrapper.find('button[aria-label="放大"]').exists()).toBe(true)
     expect(wrapper.find('button[aria-label="复位视图"]').exists()).toBe(true)
-    // 非核心动作移入菜单
-    expect(wrapper.find('button[aria-label="向右旋转"]').exists()).toBe(false)
+    // 旋转是高频操作：直接外置在工具栏上，不收进菜单
+    expect(wrapper.find('button[aria-label="向左旋转"]').exists()).toBe(true)
+    expect(wrapper.find('button[aria-label="向右旋转"]').exists()).toBe(true)
 
     const moreButton = wrapper.find('button[aria-label="更多操作"]')
     expect(moreButton.attributes('aria-expanded')).toBe('false')
@@ -141,13 +142,14 @@ describe('ViewerToolbar', () => {
 
     const menuItems = wrapper.findAll('[role="menuitem"]')
     const labels = menuItems.map((item) => item.text())
-    expect(labels).toContain('向右旋转')
+    expect(labels).not.toContain('向右旋转')
+    expect(labels).toContain('水平翻转')
     expect(labels).toContain('下一页')
     expect(labels).toContain('缩略图')
 
     await menuItems[0]!.trigger('click')
 
-    expect(wrapper.emitted('action')?.at(-1)?.[0]).toBe('rotate-left')
+    expect(wrapper.emitted('action')?.at(-1)?.[0]).toBe('flip-horizontal')
     // 选择后菜单自动收起
     expect(wrapper.find('[role="menu"]').exists()).toBe(false)
   })

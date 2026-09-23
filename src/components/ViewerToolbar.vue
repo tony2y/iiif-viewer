@@ -46,11 +46,18 @@ const emit = defineEmits<{
 
 const { t } = useViewerI18nContext()
 
-/** 窄容器下始终保留在工具栏上的动作 */
+/**
+ * 窄容器下始终保留在工具栏上的动作。
+ *
+ * 旋转是阅读图像的高频操作，收进二级菜单会把一步操作变成两步，
+ * 因此与缩放、复位、全屏一样直接外置；其余低频动作仍收进「更多」菜单。
+ */
 const PRIMARY_ACTIONS: readonly IiifViewerToolbarAction[] = [
   'zoom-out',
   'zoom-in',
   'reset',
+  'rotate-left',
+  'rotate-right',
   'fullscreen',
 ]
 
@@ -349,7 +356,8 @@ onBeforeUnmount(() => {
   list-style: none;
   border: 1px solid var(--iiif-glass-border);
   border-radius: var(--iiif-radius-md);
-  background-color: var(--iiif-glass-bg);
+  /* 弹层浮在图像上方：比工具栏本体更不透明，保证菜单文字始终可读 */
+  background-color: var(--iiif-popup-bg);
   backdrop-filter: blur(var(--iiif-glass-blur));
   -webkit-backdrop-filter: blur(var(--iiif-glass-blur));
   box-shadow: var(--iiif-shadow-lg);

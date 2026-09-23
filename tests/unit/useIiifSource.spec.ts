@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
+import type { Ref } from 'vue'
 
-import { useIiifSource } from '../../src/composables/useIiifSource'
-import type { IiifViewerSource, IiifViewerSourceType } from '../../src/types/viewer'
+import { useIiifSource } from '@/composables/useIiifSource'
+import type { IiifViewerSource, IiifViewerSourceType } from '@/types'
 import { jsonResponse, withSetup } from '../helpers'
 
 const INFO_V3 = {
@@ -52,10 +53,11 @@ const MANIFEST_V3 = makeManifest(3)
 function mountSource(
   initial: IiifViewerSource,
   sourceType: IiifViewerSourceType = 'auto',
-  options: { initialDoublePage?: boolean } = {},
+  options: { initialDoublePage?: boolean; locale?: Ref<string> } = {},
 ) {
   const source = ref<IiifViewerSource>(initial)
   const type = ref<IiifViewerSourceType>(sourceType)
+  const locale = options.locale ?? ref('en-US')
   const onLoaded = vi.fn()
   const onError = vi.fn()
 
@@ -63,7 +65,7 @@ function mountSource(
     useIiifSource({
       source: () => source.value,
       sourceType: () => type.value,
-      locale: () => 'en-US',
+      locale: () => locale.value,
       timeout: () => 1000,
       initialDoublePage: () => options.initialDoublePage ?? false,
       onLoaded,
@@ -71,7 +73,7 @@ function mountSource(
     }),
   )
 
-  return { source, type, result, app, onLoaded, onError }
+  return { source, type, locale, result, app, onLoaded, onError }
 }
 
 afterEach(() => {
@@ -358,5 +360,63 @@ describe('useIiifSource · 双页展开', () => {
 
     result.toggleDoublePage()
     expect(result.doublePage.value).toBe(false)
+  })
+})
+
+describe('useIiifSource · 资源签名与加载轮次', () => {
+  it('切换语言只重新解析标签，资源签名保持不变', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse(MANIFEST_V3)),
+    )
+    const locale = ref('en-US')
+    const { result } = mountSource('https://example.org/manifest/3', 'auto', { locale })
+    await vi.waitFor(() => expect(result.status.value).toBe('ready'))
+
+    const canvasesBefore = result.canvases.value
+    const keyBefore = result.tileSourcesKey.value
+    expect(keyBefore).toBe('https://example.org/iiif/image-1/info.json')
+
+    locale.value = 'zh-CN'
+    await nextTick()
+
+    // 标签确实重新解析（画布数组换了新引用）……
+    expect(result.canvases.value).not.toBe(canvasesBefore)
+    // ……但图像资源没变，签名保持一致，调用方据此可跳过重新 open
+    expect(result.tileSourcesKey.value).toBe(keyBefore)
+  })
+
+  it('翻页会改变资源签名', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse(MANIFEST_V3)),
+    )
+    const { result } = mountSource('https://example.org/manifest/3')
+    await vi.waitFor(() => expect(result.status.value).toBe('ready'))
+
+    const keyBefore = result.tileSourcesKey.value
+    result.next()
+
+    expect(result.tileSourcesKey.value).not.toBe(keyBefore)
+    expect(result.tileSourcesKey.value).toBe('https://example.org/iiif/image-2/info.json')
+  })
+
+  it('每次加载都推进轮次，而重试不会改变资源签名', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(INFO_V3))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { result } = mountSource('https://example.org/iiif/image-3')
+    await vi.waitFor(() => expect(result.status.value).toBe('ready'))
+    expect(result.loadEpoch.value).toBe(1)
+
+    const keyBefore = result.tileSourcesKey.value
+    result.retry()
+    await vi.waitFor(() => expect(result.loadEpoch.value).toBe(2))
+    // 新一轮开始时 tileSources 会先被清空，等这一轮重新就绪再比较签名
+    await vi.waitFor(() => expect(result.status.value).toBe('ready'))
+
+    // 同一份资源被重新加载：签名相同，必须靠轮次识别出「需要重新 open」
+    expect(result.tileSourcesKey.value).toBe(keyBefore)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 })

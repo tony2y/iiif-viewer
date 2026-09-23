@@ -29,6 +29,9 @@ export type IiifViewerToolbarPosition = 'top' | 'bottom' | 'left' | 'right'
 /** 初始适配方式 */
 export type IiifViewerFitMode = 'contain' | 'width' | 'height'
 
+/** 翻页 / 换资源时的过渡预设 */
+export type IiifViewerPageTransitionPreset = 'none' | 'fade' | 'zoom-swap'
+
 /** 色彩调节维度 */
 export type IiifColorAdjustmentKey = 'brightness' | 'contrast' | 'saturation'
 
@@ -119,6 +122,88 @@ export function resolveToolbarOptions(
 }
 
 /* -------------------------------------------------------------------------- */
+/* 翻页过渡                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * 翻页 / 换资源时的过渡配置。
+ *
+ * - `fade`：把当前画面固化为快照盖在上层，新页面就位后淡出。适应面最广，
+ *   不依赖缩放状态，也不改变视口；
+ * - `zoom-swap`：旧页先轻微缩小，交换内容后回弹。纯 OpenSeadragon 能力实现，
+ *   不会丢失当前的缩放与平移位置。
+ */
+export interface IiifViewerPageTransitionOptions {
+  /** 预设名，默认 `'fade'` */
+  preset?: IiifViewerPageTransitionPreset
+  /** 过渡时长（毫秒），默认 260 */
+  duration?: number
+  /** `fade` 使用的缓动函数，默认与 `--iiif-ease` 一致 */
+  easing?: string
+  /**
+   * 系统开启「减弱动效」时是否自动降级为无过渡。默认 `true`。
+   * 设为 `false` 可强制播放动画（不建议）。
+   */
+  respectReducedMotion?: boolean
+}
+
+/** 简写形式：`false` / `true` 分别表示关闭与使用默认预设 */
+export type IiifViewerPageTransition =
+  boolean | IiifViewerPageTransitionPreset | IiifViewerPageTransitionOptions
+
+/** 解析后的预设：不可能为 `'none'`（该情况由「无过渡」表达） */
+export type ResolvedPageTransitionPreset = Exclude<IiifViewerPageTransitionPreset, 'none'>
+
+/** 补齐默认值后的过渡配置，供运行时消费 */
+export interface ResolvedPageTransitionOptions {
+  preset: ResolvedPageTransitionPreset
+  duration: number
+  easing: string
+}
+
+/** 过渡配置默认值 */
+export const DEFAULT_PAGE_TRANSITION_OPTIONS: ResolvedPageTransitionOptions = {
+  preset: 'fade',
+  duration: 260,
+  easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)',
+}
+
+/**
+ * 把多种入参形态解析为运行时配置；返回 `null` 表示本次不做过渡。
+ *
+ * @param value Prop / 插件配置传入的过渡配置
+ * @param reducedMotion 当前是否处于「减弱动效」
+ */
+export function resolvePageTransitionOptions(
+  value: IiifViewerPageTransition | undefined,
+  reducedMotion = false,
+): ResolvedPageTransitionOptions | null {
+  if (value === undefined || value === false) return null
+
+  let options: IiifViewerPageTransitionOptions
+  if (value === true) options = {}
+  else if (typeof value === 'string') options = { preset: value }
+  else options = value
+
+  const preset = options.preset ?? DEFAULT_PAGE_TRANSITION_OPTIONS.preset
+  if (preset === 'none') return null
+
+  const respectReducedMotion = options.respectReducedMotion ?? true
+  if (respectReducedMotion && reducedMotion) return null
+
+  const duration = Number.isFinite(options.duration)
+    ? Math.max(0, Number(options.duration))
+    : DEFAULT_PAGE_TRANSITION_OPTIONS.duration
+  if (duration === 0) return null
+
+  return {
+    preset,
+    duration,
+    easing: options.easing ?? DEFAULT_PAGE_TRANSITION_OPTIONS.easing,
+  }
+}
+
+/* -------------------------------------------------------------------------- */
 /* 运行时状态                                                                  */
 /* -------------------------------------------------------------------------- */
 
@@ -174,6 +259,12 @@ export interface IiifViewerActions {
   setDoublePage: (enabled: boolean) => void
   /** 切换双页展开模式 */
   toggleDoublePage: () => void
+  /**
+   * 显示 / 隐藏右上角的导航图（小地图）。
+   *
+   * 与 `showNavigator` Prop 等价；已创建导航图时只做显隐，不会丢失视图状态。
+   */
+  setNavigatorVisible: (visible: boolean) => void
   /** 设置色彩调节（部分字段即可） */
   setColors: (adjustments: Partial<IiifColorAdjustments>) => void
   /** 重置色彩调节为中性值 */
@@ -205,6 +296,16 @@ export interface IiifViewerErrorLike extends Error {
   readonly code: IiifViewerErrorCode
   readonly i18nKey: string
   readonly details?: unknown
+}
+
+/** 翻页过渡事件的负载 */
+export interface IiifViewerPageTransitionPayload {
+  /** 过渡前的画布下标 */
+  from: number
+  /** 过渡后的画布下标 */
+  to: number
+  /** 实际生效的预设 */
+  preset: IiifViewerPageTransitionPreset
 }
 
 /** Emits 映射（采用 Vue 3.3+ 的元组语法） */
@@ -239,6 +340,10 @@ export interface IiifViewerEmits {
   'progress-change': [percent: number]
   /** 元数据面板开合 */
   'info-toggle': [open: boolean]
+  /** 翻页 / 换资源过渡开始（`pageTransition` 未启用时不派发） */
+  'page-transition-start': [payload: IiifViewerPageTransitionPayload]
+  /** 翻页 / 换资源过渡结束；被新的过渡中断时同样会派发 */
+  'page-transition-end': [payload: IiifViewerPageTransitionPayload]
 }
 
 /* -------------------------------------------------------------------------- */
@@ -265,7 +370,13 @@ export interface IiifViewerProps {
   theme?: IiifViewerTheme
   /** 工具栏开关或细项配置。默认 `true` */
   toolbar?: boolean | IiifViewerToolbarOptions
-  /** 是否显示导航图（OSD 内置）。默认 `true` */
+  /**
+   * 是否显示右上角的导航图（小地图）。默认 `true`。
+   *
+   * 运行期修改即时生效：直接显隐 OSD 的导航图容器，不会重建实例、也不会丢失缩放与平移。
+   * 唯一的例外是「实例按 `false` 创建、之后又要显示」——此时 OSD 根本没有生成导航图，
+   * 只能重建实例，重建会回到适配视图。
+   */
   showNavigator?: boolean
   /** 是否显示底部状态栏。默认 `true` */
   showStatusBar?: boolean
@@ -304,6 +415,13 @@ export interface IiifViewerProps {
    */
   colorAdjust?: boolean
   /**
+   * 翻页 / 换资源时的过渡效果。默认关闭（`false`）。
+   *
+   * 支持 `'none' | 'fade' | 'zoom-swap'` 预设名，或传入细项配置；系统开启
+   * 「减弱动效」时会自动降级为无过渡（可用 `respectReducedMotion: false` 覆盖）。
+   */
+  pageTransition?: IiifViewerPageTransition
+  /**
    * 由使用方显式提供的 OpenSeadragon 实例（命名空间）。
    *
    * 不传时使用 `peerDependencies` 中的 OpenSeadragon。仅在需要指定自编译版本、
@@ -333,6 +451,8 @@ export interface IiifViewerPluginOptions {
   initialDoublePage?: boolean
   /** 全局是否启用色彩调节模块 */
   colorAdjust?: boolean
+  /** 全局默认翻页过渡效果 */
+  pageTransition?: IiifViewerPageTransition
   /** 全局指定 OpenSeadragon 实例 */
   openseadragon?: OpenseadragonNamespace
 }

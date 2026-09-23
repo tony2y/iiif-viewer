@@ -7,7 +7,7 @@
 [![vue](https://img.shields.io/badge/vue-%5E3.5-42b883)](https://vuejs.org/)
 [![openseadragon](https://img.shields.io/badge/openseadragon-%5E6.0-blue)](https://openseadragon.github.io/)
 
-**English** | [简体中文](./README.md)· [Preview ](https://tony2y.github.io/iiif-viewer/)
+**English** | [简体中文](./README.md) | [Preview ](https://tony2y.github.io/iiif-viewer/)
 
 ---
 
@@ -18,16 +18,16 @@
 ### Core features
 
 | Category                 | Capabilities                                                                                                                                                                                                                                                                                                             |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+|--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **IIIF standard**        | IIIF **Image API 2.x / 3.x** (`info.json`); IIIF **Presentation API 2.1 / 3.0** (`manifest.json`, multi-canvas paging); label language mapping, metadata / rights / provider / thumbnail normalization                                                                                                                   |
 | **Input detection**      | Auto-detects an "Image API service base URL", an "`info.json` URL", a "`manifest.json` URL", a "static image URL", or an "OSD tileSource"; when URL heuristics fail it **re-checks the response body** (supports unusual addresses such as `/presentation/{id}`)                                                         |
 | **Image interaction**    | Zoom (wheel / double-click / buttons / keyboard), pan and drag, arbitrary-angle rotation, horizontal flip, reset, fullscreen, built-in OSD navigator                                                                                                                                                                     |
-| **Multi-canvas**         | Previous / next page, page status, thumbnail strip (falls back to the Image API `full/!120,120/0/default.jpg` when a thumbnail is missing)                                                                                                                                                                               |
+| **Multi-canvas**         | Previous / next page, page status, thumbnail strip (falls back to the Image API `full/!120,120/0/default.jpg` when a thumbnail is missing); page turns keep the current zoom and pan, with optional `fade` / `zoom-swap` transitions                                                                                     |
 | **Single/double page**   | Single-page / double-page view toggle (toolbar button, `initialDoublePage` prop, and `setDoublePage()` / `toggleDoublePage()`); the index snaps to an even number, paging advances by 2, both pages share the same height and are **flush at the spine**, and the last spread may hold a single page rendered full-width |
 | **Color adjustment**     | Live brightness / contrast / saturation: one toolbar button → a right-side slide-out panel, composed into a single CSS `filter` applied to the canvas (the navigator is unaffected, all three renderers work, no tile refetch)                                                                                           |
 | **Table of contents**    | Parses IIIF `structures` (v2 `ranges` / v3 `items`) into a unified tree; the info panel shows a "Contents / Item information" tab pair; clicking an entry navigates and the current page is highlighted                                                                                                                  |
 | **UI**                   | Dark gallery theme (default) / light theme / follow system; glassmorphic floating toolbar with four docking positions; loading skeleton and progress ring; error card (with error code and retry); metadata drawer panel                                                                                                 |
-| **Internationalization** | Built-in `zh-CN` / `en-US`, zero extra runtime dependencies; override or extend messages via `messages`; manifest labels are re-parsed live when the language changes (no new request)                                                                                                                                   |
+| **Internationalization** | Built-in `zh-CN` / `en-US`, zero extra runtime dependencies; override or extend messages via `messages`                                                                                                                                                                                                                  |
 | **Responsive**           | Built on CSS container queries (`@container`), decoupled from viewport width; in narrow containers the toolbar is compacted into a "More" menu                                                                                                                                                                           |
 | **Accessibility**        | Every control has an accessible name and a visible focus ring; icons are decorative and hidden from the accessibility tree; shortcut hints are readable by screen readers; full `prefers-reduced-motion` support                                                                                                         |
 | **Type safety**          | Complete TypeScript typings (Props / Emits / Slots / Expose / core capabilities / IIIF structures), with `.d.ts` shipped in the artifacts                                                                                                                                                                                |
@@ -55,7 +55,7 @@
 As a result, **the library artifacts contain no OpenSeadragon code**, and the consumer must install it once to avoid multiple copies of OSD on the same page (multiple instances each register global events and styles, which breaks interaction).
 
 ```bash
-pnpm add @tony2y/iiif-viewer openseadragon vue
+pnpm add @tony2y/iiif-viewer openseadragon
 ```
 
 In a few scenarios the consumer needs to **explicitly specify** the OSD source. Pass it through the `openseadragon` prop (or the plugin config `createIiifViewer({ openseadragon })`), for example: a CDN / `<script>` include where only `window.OpenSeadragon` is available; a self-compiled or patched OSD build; or multiple OSD versions coexisting on the page.
@@ -193,7 +193,7 @@ iiif-viewer/
 | `ERR_PNPM_UNSUPPORTED_ENGINE` or a Node version error when Vite starts | Node is older than 20.19.0; upgrade Node                                                                                                    |
 | `Port 5173 is already in use`                                          | Use another port: `pnpm dev --port 5188 --strictPort`                                                                                       |
 | A peer dependency warning during install                               | Install the peer dependencies as well: `pnpm add vue openseadragon` (this repo already installs them as devDependencies for the playground) |
-| Broken styles (no borders / no glassmorphism)                          | The stylesheet was not imported; make sure the code includes `import '@tony2y/iiif-viewer/style.css'`                                         |
+| Broken styles (no borders / no glassmorphism)                          | The stylesheet was not imported; make sure the code includes `import '@tony2y/iiif-viewer/style.css'`                                       |
 | WebGL texture warnings from cross-origin tiles in the console          | See [6.3 Troubleshooting](#63-troubleshooting); passing `crossOriginPolicy: 'Anonymous'` is recommended                                     |
 
 ---
@@ -524,7 +524,7 @@ const osd = window.OpenSeadragon as typeof import('openseadragon')
 | `messages`          | `Record<string, string>`                    | `undefined`                                      | Override / extend built-in messages; keys in [5.6 Message keys](#56-message-keys)                                                        |
 | `theme`             | `'dark' \| 'light' \| 'auto'`               | plugin config → `'dark'`                         | `auto` follows the system `prefers-color-scheme`                                                                                         |
 | `toolbar`           | `boolean \| IiifViewerToolbarOptions`       | `true`                                           | `false` hides the toolbar; an object toggles individual items, see [5.2 Toolbar options](#52-toolbar-options)                            |
-| `showNavigator`     | `boolean`                                   | `true`                                           | Whether to show the built-in OSD navigator                                                                                               |
+| `showNavigator`     | `boolean`                                   | `true`                                           | Whether to show the top-right navigator (mini-map); changes apply at runtime (created with `false`, switching to `true` recreates the viewer) |
 | `showStatusBar`     | `boolean`                                   | `true`                                           | Whether to show the bottom status bar                                                                                                    |
 | `showThumbnails`    | `boolean`                                   | `false`                                          | **Initial** expanded state of the thumbnail strip; multi-canvas only, auto-hidden for a single canvas                                    |
 | `showInfoPanel`     | `boolean`                                   | `false`                                          | **Initial** expanded state of the metadata panel                                                                                         |
@@ -538,6 +538,7 @@ const osd = window.OpenSeadragon as typeof import('openseadragon')
 | `osdOptions`        | `Partial<OpenSeadragon.Options>`            | `undefined`                                      | Pass-through / override for native OpenSeadragon options, **highest priority**                                                           |
 | `initialDoublePage` | `boolean`                                   | `false`                                          | Whether to start in double-page view; changing this prop at runtime also toggles it, equivalent to `setDoublePage()`                     |
 | `colorAdjust`       | `boolean`                                   | `true`                                           | Whether to enable brightness / contrast / saturation adjustment; `false` hides the button, renders no panel and clears the canvas filter |
+| `pageTransition`    | `IiifViewerPageTransition`                  | `false`                                          | Page / resource transition: `false` disables, or a `'fade'` / `'zoom-swap'` preset or options object                                     |
 | `openseadragon`     | `OpenseadragonNamespace`                    | `undefined`                                      | Explicitly specifies the OpenSeadragon source (defaults to the peerDependency); the injected object goes through `verifyOpenSeadragon()` |
 
 #### Differences from OSD defaults
@@ -557,11 +558,11 @@ Internally the component disables OpenSeadragon's built-in navigation controls a
   navigatorAutoFade: false,
   visibilityRatio: 0.6,
   constrainDuringPan: false,
-  preserveViewport: false,
+  preserveViewport: true,           // the component decides when to re-fit, so page turns keep the view
   wrapHorizontal: false,
   wrapVertical: false,
-  animationTime: 1.2,               // 0 under prefers-reduced-motion
-  springStiffness: 6.5,             // 100 under prefers-reduced-motion
+  animationTime: 0.8,               // 0 under prefers-reduced-motion
+  springStiffness: 10,              // 100 under prefers-reduced-motion
   gestureSettingsMouse: { scrollToZoom: true, clickToZoom: false, dblClickToZoom: true, pinchToZoom: true, flickEnabled: true, flickMomentum: 0.18, pinchRotate: false },
   gestureSettingsTouch: { pinchToZoom: true, dblClickToZoom: true, flickEnabled: true, flickMomentum: 0.18, pinchRotate: false },
 }
@@ -593,27 +594,29 @@ Usage example:
 <IiifViewer :source="source" :toolbar="false" />
 ```
 
-In a narrow container (width < 480px) the toolbar keeps only `zoom out / zoom in / reset / fullscreen`, and the remaining actions collapse into a "More" popup menu.
+In a narrow container (width < 480px) the toolbar keeps only `zoom out / zoom in / reset / rotate left / rotate right / fullscreen`, and the remaining actions collapse into a "More" popup menu.
 
 ### 5.3 Events
 
-| Event                | Payload                                     | When it fires                                                                         |
-| -------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `ready`              | `viewer: OpenSeadragon.Viewer`              | The OpenSeadragon instance has been created                                           |
-| `destroy`            | —                                           | The component unmounts and the instance is destroyed                                  |
-| `load-start`         | `source: IiifViewerSource`                  | Resource loading starts                                                               |
-| `load-success`       | `{ kind, imageInfo?, manifest?, canvases }` | Resource loaded successfully (`kind` ∈ `info` / `manifest` / `image` / `tile-source`) |
-| `load-error`         | `error: IiifViewerErrorLike`                | Resource loading failed (with `code` and `i18nKey`)                                   |
-| `zoom-change`        | `zoom: number`                              | Zoom percentage changed (100 means 1:1)                                               |
-| `rotation-change`    | `degrees: number`                           | Rotation changed (0–359)                                                              |
-| `flip-change`        | `flipped: boolean`                          | Flip state changed                                                                    |
-| `page-change`        | `{ index: number; total: number }`          | Canvas changed (`index` is 0-based)                                                   |
-| `double-page-change` | `value: boolean`                            | Single / double page mode switched                                                    |
-| `colors-change`      | `colors: IiifColorAdjustments`              | Color adjustment values changed (already normalized)                                  |
-| `color-toggle`       | `open: boolean`                             | Color adjustment panel opened / closed                                                |
-| `fullscreen-change`  | `value: boolean`                            | Fullscreen state changed                                                              |
-| `progress-change`    | `percent: number`                           | Tile loading progress changed (0–100)                                                 |
-| `info-toggle`        | `open: boolean`                             | Metadata panel opened / closed                                                        |
+| Event                   | Payload                                     | When it fires                                                                         |
+| ----------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `ready`                 | `viewer: OpenSeadragon.Viewer`              | The OpenSeadragon instance has been created                                           |
+| `destroy`               | —                                           | The component unmounts and the instance is destroyed                                  |
+| `load-start`            | `source: IiifViewerSource`                  | Resource loading starts                                                               |
+| `load-success`          | `{ kind, imageInfo?, manifest?, canvases }` | Resource loaded successfully (`kind` ∈ `info` / `manifest` / `image` / `tile-source`) |
+| `load-error`            | `error: IiifViewerErrorLike`                | Resource loading failed (with `code` and `i18nKey`)                                   |
+| `zoom-change`           | `zoom: number`                              | Zoom percentage changed (100 means 1:1)                                               |
+| `rotation-change`       | `degrees: number`                           | Rotation changed (0–359)                                                              |
+| `flip-change`           | `flipped: boolean`                          | Flip state changed                                                                    |
+| `page-change`           | `{ index: number; total: number }`          | Canvas changed (`index` is 0-based)                                                   |
+| `double-page-change`    | `value: boolean`                            | Single / double page mode switched                                                    |
+| `colors-change`         | `colors: IiifColorAdjustments`              | Color adjustment values changed (already normalized)                                  |
+| `color-toggle`          | `open: boolean`                             | Color adjustment panel opened / closed                                                |
+| `fullscreen-change`     | `value: boolean`                            | Fullscreen state changed                                                              |
+| `progress-change`       | `percent: number`                           | Tile loading progress changed (0–100)                                                 |
+| `info-toggle`           | `open: boolean`                             | Metadata panel opened / closed                                                        |
+| `page-transition-start` | `IiifViewerPageTransitionPayload`           | A page transition started (off when `pageTransition` is disabled                      |
+| `page-transition-end`   | `IiifViewerPageTransitionPayload`           | A page transition finished, including interrupted ones                                |
 
 ### 5.4 Slots
 
@@ -641,6 +644,7 @@ In a narrow container (width < 480px) the toolbar keeps only `zoom out / zoom in
 | `prevPage()` / `nextPage()`       | `() => void`                                       | Previous / next canvas                                                                         |
 | `setDoublePage(enabled)`          | `(enabled: boolean) => void`                       | Sets double-page view (snaps the current page to the spread start when enabling)               |
 | `toggleDoublePage()`              | `() => void`                                       | Toggles double-page view                                                                       |
+| `setNavigatorVisible(v)`          | `(visible: boolean) => void`                       | Shows / hides the top-right navigator, equivalent to the `showNavigator` prop                  |
 | `setColors(partial)`              | `(partial: Partial<IiifColorAdjustments>) => void` | Sets color adjustment (partial fields allowed; the others keep their current values)           |
 | `resetColors()`                   | `() => void`                                       | Resets color adjustment to the neutral values (100 / 100 / 100)                                |
 | `toggleFullscreen()`              | `() => void`                                       | Toggles fullscreen                                                                             |
@@ -712,6 +716,7 @@ Use these keys when overriding via `messages` (unoverridden ones fall back to th
 | `osdOptions`        | `Partial<OpenSeadragon.Options>`      | `undefined` | Global default OSD options                              |
 | `initialDoublePage` | `boolean`                             | `undefined` | Global default for double-page view                     |
 | `colorAdjust`       | `boolean`                             | `undefined` | Whether the color adjustment module is enabled globally |
+| `pageTransition`    | `IiifViewerPageTransition`            | `undefined` | Default page transition effect                          |
 | `openseadragon`     | `OpenseadragonNamespace`              | `undefined` | Global OpenSeadragon instance                           |
 
 Priority: **component props > plugin config > built-in defaults**.
@@ -746,6 +751,7 @@ All variables are scoped to `.iiif-viewer` and never leak into the host page. Ov
 |               | `--iiif-color-danger-soft`                                          | `rgba(239,68,68,.16)`             | `rgba(220,38,38,.12)`   |
 |               | `--iiif-color-ring`                                                 | `#22d3ee`                         | `#0e7490`               |
 | Glassmorphism | `--iiif-glass-bg`                                                   | `rgba(20,22,25,.72)`              | `rgba(255,255,255,.74)` |
+|               | `--iiif-popup-bg`                                                   | `rgba(20,22,25,.94)`              | `rgba(255,255,255,.96)` |
 |               | `--iiif-glass-border`                                               | `rgba(255,255,255,.14)`           | `rgba(9,9,11,.1)`       |
 |               | `--iiif-glass-blur`                                                 | `14px`                            | same                    |
 |               | `--iiif-overlay-scrim`                                              | `rgba(6,7,9,.72)`                 | `rgba(250,250,250,.76)` |
@@ -804,6 +810,7 @@ import {
   buildImageFilter,
   verifyOpenSeadragon,
   toTileSource,
+  tileSourceKey,
   createOsdOptions,
   resolveUrl,
   useIiifSource,
@@ -838,14 +845,14 @@ try {
 - The metadata panel and the color adjustment panel use `role="dialog"` + `aria-labelledby`; focus moves to the close button on open and returns on close, and `Esc` is supported; color sliders have `<label for>` and `aria-valuetext`
 - The info panel's "Contents / Item information" tabs use `role="tablist" / "tab" / "tabpanel"` + roving `tabindex`, supporting `←` `→` `Home` `End` to switch (focus movement activates)
 - On touch devices, button hit areas automatically grow to 44×44px
-- Full support for `prefers-reduced-motion: reduce`
+- Full support for `prefers-reduced-motion: reduce`: changes apply live and page transitions degrade to no animation
 
 ### 6.2 Responsive behavior
 
-| Container width | Behavior                                                                                                                                                                                                           |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| ≥ 480px         | Full toolbar, status bar shows title and rotation/flip info, thumbnails 60×60                                                                                                                                      |
-| < 480px         | Toolbar compacted to "zoom out / zoom in / reset / fullscreen / ⋯More"; left/right docking degrades to bottom; status bar compacted to "page + zoom"; thumbnails 48×48; the metadata panel becomes a bottom drawer |
+| Container width | Behavior                                                                                                                                                                                                                                        |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ≥ 480px         | Full toolbar, status bar shows title and rotation/flip info, thumbnails 60×60                                                                                                                                                                   |
+| < 480px         | Toolbar compacted to "zoom out / zoom in / reset / rotate left / rotate right / fullscreen / ⋯More"; left/right docking degrades to bottom; status bar compacted to "page + zoom"; thumbnails 48×48; the metadata panel becomes a bottom drawer |
 
 The criterion is the **actual width of the component container** (CSS container queries + `ResizeObserver`), decoupled from the browser viewport, so it responds correctly in any layout.
 

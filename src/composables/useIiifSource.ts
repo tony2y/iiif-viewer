@@ -17,6 +17,7 @@ import {
   getIiifDocument,
   isAbortError,
   parseManifest,
+  tileSourceKey,
   toTileSource,
 } from '@/core/iiif'
 import { ensureInfoJsonUrl } from '@/core/url'
@@ -66,6 +67,20 @@ export interface UseIiifSourceReturn {
   canvases: Ref<IiifCanvas[]>
   /** 当前需要交给 OSD 渲染的 tileSources：单页为 1 个，双页为 1–2 个 */
   tileSources: ComputedRef<IiifViewerTileSource[]>
+  /**
+   * `tileSources` 的稳定签名。
+   *
+   * 内容未变时签名不变——包括「切换语言后重新解析 manifest 标签」这类只换引用、不换资源的情况。
+   * 调用方应据此判断是否需要真正调用 `OpenSeadragon.open()`。
+   */
+  tileSourcesKey: ComputedRef<string>
+  /**
+   * 已发起的加载轮次，每调用一次 `load()` 自增。
+   *
+   * 与 {@link UseIiifSourceReturn.tileSourcesKey} 配合使用：签名相同但轮次变化，
+   * 说明是「同一份资源被重新加载」（例如 `retry()`），此时仍需重新 `open()`。
+   */
+  loadEpoch: Ref<number>
   currentIndex: Ref<number>
   /** 当前展开范围的起始下标（双页模式下为偶数） */
   spreadStart: ComputedRef<number>
@@ -105,6 +120,8 @@ export function useIiifSource(options: UseIiifSourceOptions): UseIiifSourceRetur
   const passthroughTileSources = shallowRef<IiifViewerTileSource[]>([])
   const currentIndex = ref(0)
   const doublePage = ref(options.initialDoublePage?.() ?? false)
+  /** 加载轮次：每次 load() 自增，用于把「资源重新加载」与「资源变化」区分开 */
+  const loadEpoch = ref(0)
 
   let controller: AbortController | null = null
 
@@ -142,6 +159,9 @@ export function useIiifSource(options: UseIiifSourceOptions): UseIiifSourceRetur
       .map((canvas) => toTileSource(canvas))
   })
 
+  /** 资源签名：仅随「实际要渲染的图像」变化，语言切换等只改标签的场景保持不变 */
+  const tileSourcesKey = computed(() => tileSourceKey(tileSources.value))
+
   /** 当前语言，未显式传入时按英文提取标签 */
   function currentLocale(): string {
     return options.locale?.() ?? 'en'
@@ -172,6 +192,7 @@ export function useIiifSource(options: UseIiifSourceOptions): UseIiifSourceRetur
 
   async function load(): Promise<void> {
     abort()
+    loadEpoch.value += 1
     const current = new AbortController()
     controller = current
 
@@ -321,6 +342,8 @@ export function useIiifSource(options: UseIiifSourceOptions): UseIiifSourceRetur
     manifest,
     canvases,
     tileSources,
+    tileSourcesKey,
+    loadEpoch,
     currentIndex,
     spreadStart,
     visibleIndexes,

@@ -681,6 +681,29 @@ export function imageServiceToTileSource(url: string): string {
   return ensureInfoJsonUrl(url)
 }
 
+/**
+ * 生成 tileSources 列表的稳定签名。
+ *
+ * 用途是回答「这批 tileSources 与上一次交给 OpenSeadragon 的是否属于同一份资源」：
+ * 资源内容没变时（例如切换界面语言后重新解析 manifest 的标签），数组与元素的引用都会变化，
+ * 但图像本身并未改变，此时不应重新 `open()`——那会清空瓦片缓存并把视口复位。
+ *
+ * 签名只取决定图像资源的部分：IIIF 取 `info.json` 地址，静态图片与内联 tileSource 取配置快照。
+ * 内联对象按 JSON 序列化比较，重建出的等价对象视为未变化。
+ */
+export function tileSourceKey(tileSources: IiifViewerTileSource[]): string {
+  return tileSources
+    .map((tileSource) => {
+      if (typeof tileSource === 'string') return tileSource
+      try {
+        return `tile-source:${JSON.stringify(tileSource)}`
+      } catch {
+        return `tile-source:${String(tileSource)}`
+      }
+    })
+    .join('|')
+}
+
 /* -------------------------------------------------------------------------- */
 /* OpenSeadragon 配置推导                                                      */
 /* -------------------------------------------------------------------------- */
@@ -697,6 +720,30 @@ export interface OsdOptionInput {
   osdOptions?: Partial<OsdOptions>
   /** 是否降低动效（跟随 `prefers-reduced-motion`） */
   reducedMotion?: boolean
+}
+
+/** 动画时长（秒）。比 OpenSeadragon 自带的 1.2 更短，翻页与缩放反馈更跟手 */
+export const DEFAULT_ANIMATION_TIME = 0.8
+
+/** 弹簧刚度。越大收敛越快、末端越"干脆" */
+export const DEFAULT_SPRING_STIFFNESS = 10
+
+/** 「减弱动效」下使用的弹簧刚度（此时动画时长已归零） */
+export const REDUCED_MOTION_SPRING_STIFFNESS = 100
+
+/**
+ * 按「是否减弱动效」推导 OSD 的动效参数。
+ *
+ * 抽成独立函数是为了让运行期切换（`prefers-reduced-motion` 变化）与创建实例时
+ * 使用同一套取值，避免两处漂移。
+ */
+export function resolveMotionSettings(reducedMotion: boolean): {
+  animationTime: number
+  springStiffness: number
+} {
+  return reducedMotion
+    ? { animationTime: 0, springStiffness: REDUCED_MOTION_SPRING_STIFFNESS }
+    : { animationTime: DEFAULT_ANIMATION_TIME, springStiffness: DEFAULT_SPRING_STIFFNESS }
 }
 
 /** 一层深度合并，避免用户传入的嵌套对象被整体覆盖 */
@@ -721,6 +768,7 @@ function mergeOptions<T extends Record<string, unknown>>(base: T, override?: Par
  */
 export function createOsdOptions(input: OsdOptionInput = {}): OsdOptions {
   const { showNavigator = true, minZoom = 0.5, maxZoom = 20, reducedMotion = false } = input
+  const motion = resolveMotionSettings(reducedMotion)
 
   const base = {
     showNavigator,
@@ -733,11 +781,15 @@ export function createOsdOptions(input: OsdOptionInput = {}): OsdOptions {
     maxZoomPixelRatio: maxZoom,
     visibilityRatio: 0.6,
     constrainDuringPan: false,
-    preserveViewport: false,
+    /**
+     * 保留当前视口：OpenSeadragon 在 `open()` 时会先 `close()`，
+     * 若它同时把视口 `goHome()`，翻页就会整幅复位（缩放与平移全部丢失）。
+     * 这里交给组件决定何时重新适配（见 `useOpenSeadragon.open()` 的 `preserveViewport`）。
+     */
+    preserveViewport: true,
     wrapHorizontal: false,
     wrapVertical: false,
-    animationTime: reducedMotion ? 0 : 1.2,
-    springStiffness: reducedMotion ? 100 : 6.5,
+    ...motion,
     immediateRender: false,
     // 键盘交互统一由组件在舞台层处理，关闭 OSD 自带的键盘平移
     keyboardNavEnabled: false,

@@ -69,6 +69,40 @@
   border: 0;
 }
 
+/*
+ * 全屏以组件根元素为目标（原生 Fullscreen API，含 webkit 前缀回退）：
+ * 工具栏、状态栏、缩略图条与画布同处一个全屏元素内，全屏时依旧可见可交互，
+ * Esc 与工具栏按钮都能退出。`aspectRatio` 写在 body 的内联样式上，
+ * 需用 !important 反超，让画面撑满整个全屏视口而不是按比例留黑边。
+ */
+.iiif-viewer:fullscreen,
+.iiif-viewer:-webkit-full-screen {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+
+.iiif-viewer:fullscreen .iiif-viewer__body,
+.iiif-viewer:-webkit-full-screen .iiif-viewer__body {
+  flex: 1 1 auto !important;
+  aspect-ratio: auto !important;
+}
+
+/*
+ * 翻页过渡的快照层（`pageTransition: 'fade'`）。
+ * 由 JS 复制当前画布像素后插入舞台内：层级高于 OSD 画布，但仍整体处于舞台的
+ * 层叠上下文内，因此工具栏与抽屉面板依旧浮在其上、可正常操作。
+ */
+.iiif-viewer__snapshot {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 1;
+}
+
 /* -------------------------------------------------------------------------- */
 /* 无障碍                                                                    */
 /* -------------------------------------------------------------------------- */

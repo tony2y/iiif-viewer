@@ -66,6 +66,17 @@ export interface OsdMock {
   registeredEvents: () => string[]
   /** 当前 world 中的假图片 */
   items: OsdMockItem[]
+  /**
+   * 载体元素：与真实 OSD 一致，`viewer.canvas` 是容器 div（`.openseadragon-canvas`），
+   * 真正承载像素的 `<canvas>` 由 drawer 创建在其内部（`fade` 过渡的快照取自这里）。
+   */
+  canvas: HTMLDivElement
+  tileCanvas: HTMLCanvasElement
+  /**
+   * 右上角导航图（小地图）。
+   * 与真实 OSD 一致：只有创建时 `showNavigator` 为真才会挂到 `viewer.navigator` 上。
+   */
+  navigator: { element: HTMLDivElement; destroy: ReturnType<typeof vi.fn> }
   open: ReturnType<typeof vi.fn>
   destroy: ReturnType<typeof vi.fn>
   setFullScreen: ReturnType<typeof vi.fn>
@@ -204,10 +215,28 @@ export function createOsdMock(mockOptions: OsdMockOptions = {}): OsdMock {
     }),
   }
 
+  /**
+   * OSD 的 `viewer.canvas` 是容器元素而非画布：这里按同样的两级结构构造，
+   * 保证依赖 DOM 查找的过渡快照逻辑在测试中走的路径与线上一致。
+   */
+  const canvas = document.createElement('div')
+  canvas.className = 'openseadragon-canvas'
+  const tileCanvas = document.createElement('canvas')
+  tileCanvas.width = 800
+  tileCanvas.height = 600
+  canvas.appendChild(tileCanvas)
+
+  /** 导航图（小地图）替身：真实 OSD 只有在 showNavigator 为真时才创建它 */
+  const navigator = {
+    element: document.createElement('div'),
+    destroy: vi.fn(),
+  }
+  navigator.element.className = 'navigator'
+
   const viewer: Record<string, unknown> = {
     viewport,
-    // OSD 会把 .openseadragon-canvas 容器暴露为 viewer.canvas，色彩滤镜就作用在它上面
-    canvas: document.createElement('div'),
+    // 色彩滤镜作用在这个容器上（导航图是它的兄弟节点，因此不会被一起染色）
+    canvas,
     open,
     destroy,
     setFullScreen,
@@ -238,12 +267,26 @@ export function createOsdMock(mockOptions: OsdMockOptions = {}): OsdMock {
     viewer,
     namespace: buildNamespace(
       () => viewer,
-      (options) => namespaceCalls.push(options),
+      (options) => {
+        namespaceCalls.push(options)
+        /**
+         * 与真实 OSD 一致：把画布 DOM 挂进宿主容器。
+         * `fade` 过渡会从容器里查找 `<canvas>` 做快照，这里保证走的是同一条路径。
+         */
+        const element = (options as { element?: HTMLElement } | undefined)?.element
+        if (element && !canvas.parentElement) element.appendChild(canvas)
+        // 与真实 OSD 一致：showNavigator 决定导航图（小地图）是否存在
+        viewer.navigator =
+          (options as { showNavigator?: boolean }).showNavigator === false ? undefined : navigator
+      },
     ),
     namespaceCalls,
     emit,
     registeredEvents: () => [...handlers.keys()],
     items,
+    canvas,
+    tileCanvas,
+    navigator,
     open,
     destroy,
     setFullScreen,

@@ -1,8 +1,8 @@
 import { mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import IiifViewer from '../../src/components/IiifViewer.vue'
-import type { IiifViewerSource } from '../../src/types/viewer'
+import IiifViewer from '@/components/IiifViewer.vue'
+import type { IiifViewerSource } from '@/types'
 import { createOsdMock } from '../mocks/openseadragon'
 import { jsonResponse } from '../helpers'
 
@@ -186,6 +186,222 @@ describe('IiifViewer', () => {
 
     expect(wrapper.find('button[aria-label="Zoom in"]').exists()).toBe(true)
     expect(wrapper.find('button[aria-label="放大"]').exists()).toBe(false)
+  })
+
+  it('切换 locale 不会重新打开 OSD 资源，也不复位视口', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse(MANIFEST_V3)),
+    )
+
+    const wrapper = mountViewer({ source: 'https://example.org/manifest/3' })
+    await vi.waitFor(() => expect(wrapper.emitted('load-success')).toBeTruthy())
+    expect(holder.mock.open).toHaveBeenCalledTimes(1)
+
+    holder.mock.viewport.goHome.mockClear()
+    await wrapper.setProps({ locale: 'en-US' })
+
+    // 文案确实更新了……
+    expect(wrapper.find('button[aria-label="Zoom in"]').exists()).toBe(true)
+    // ……但图像没有重新加载，视口也没有被复位
+    expect(holder.mock.open).toHaveBeenCalledTimes(1)
+    expect(holder.mock.viewport.goHome).not.toHaveBeenCalled()
+  })
+
+  it('翻页与重试仍会重新打开 OSD 资源', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(MANIFEST_V3))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const wrapper = mountViewer({ source: 'https://example.org/manifest/3' })
+    await vi.waitFor(() => expect(wrapper.emitted('load-success')).toBeTruthy())
+    expect(holder.mock.open).toHaveBeenCalledTimes(1)
+
+    // 翻页：资源确实换了，必须重新 open
+    await wrapper.find('button[aria-label="下一页"]').trigger('click')
+    expect(holder.mock.open).toHaveBeenCalledTimes(2)
+
+    // 重试：签名未变但加载轮次推进，同样必须重新 open
+    const vm = wrapper.vm as unknown as { retry: () => void }
+    vm.retry()
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    await vi.waitFor(() => expect(holder.mock.open).toHaveBeenCalledTimes(3))
+  })
+
+  it('静态图片（同步加载分支）重试也会重新打开', async () => {
+    vi.stubGlobal('fetch', vi.fn())
+
+    const wrapper = mountViewer({ source: 'https://example.org/photo.jpg' })
+    await vi.waitFor(() => expect(wrapper.emitted('load-success')).toBeTruthy())
+    expect(holder.mock.open).toHaveBeenCalledTimes(1)
+
+    const vm = wrapper.vm as unknown as { retry: () => void }
+    vm.retry()
+
+    await vi.waitFor(() => expect(holder.mock.open).toHaveBeenCalledTimes(2))
+  })
+
+  it('翻页保留当前视口，换资源才重新适配', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(MANIFEST_V3))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const wrapper = mountViewer({ source: 'https://example.org/manifest/3' })
+    await vi.waitFor(() => expect(wrapper.emitted('load-success')).toBeTruthy())
+
+    // 首个画面需要适配到舞台
+    expect(holder.mock.viewport.goHome).toHaveBeenCalled()
+    holder.mock.viewport.goHome.mockClear()
+
+    await wrapper.find('button[aria-label="下一页"]').trigger('click')
+
+    expect(holder.mock.open).toHaveBeenCalledTimes(2)
+    // 同一份资源内翻页：页面几何一致，保留用户的缩放与平移
+    expect(holder.mock.viewport.goHome).not.toHaveBeenCalled()
+
+    // 换资源：版面整体改变，重新适配
+    const vm = wrapper.vm as unknown as { open: (source: string) => void }
+    vm.open('https://example.org/iiif/other')
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    await vi.waitFor(() => expect(holder.mock.viewport.goHome).toHaveBeenCalled())
+  })
+
+  it('pageTransition 开启时渲染快照层并派发过渡事件', async () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      drawImage: vi.fn(),
+    } as unknown as CanvasRenderingContext2D)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse(MANIFEST_V3)),
+    )
+
+    const wrapper = mountViewer({
+      source: 'https://example.org/manifest/3',
+      pageTransition: { preset: 'fade', duration: 10 },
+    })
+    await vi.waitFor(() => expect(wrapper.emitted('load-success')).toBeTruthy())
+
+    expect(wrapper.find('.iiif-viewer').attributes('data-page-transition')).toBe('fade')
+    // 第一个画面没有可淡出的旧内容，不应派发过渡事件
+    expect(wrapper.emitted('page-transition-start')).toBeUndefined()
+
+    const stage = wrapper.find('.iiif-viewer__stage').element
+    await wrapper.find('button[aria-label="下一页"]').trigger('click')
+
+    expect(wrapper.emitted('page-transition-start')?.[0]?.[0]).toEqual({
+      from: 0,
+      to: 1,
+      preset: 'fade',
+    })
+    expect(stage.querySelector('.iiif-viewer__snapshot')).not.toBeNull()
+
+    await vi.waitFor(() => expect(wrapper.emitted('page-transition-end')).toBeTruthy())
+    expect(wrapper.emitted('page-transition-end')?.[0]?.[0]).toEqual({
+      from: 0,
+      to: 1,
+      preset: 'fade',
+    })
+    expect(stage.querySelector('.iiif-viewer__snapshot')).toBeNull()
+  })
+
+  it('未开启 pageTransition 时不做过渡', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse(MANIFEST_V3)),
+    )
+
+    const wrapper = mountViewer({ source: 'https://example.org/manifest/3' })
+    await vi.waitFor(() => expect(wrapper.emitted('load-success')).toBeTruthy())
+
+    expect(wrapper.find('.iiif-viewer').attributes('data-page-transition')).toBe('none')
+
+    await wrapper.find('button[aria-label="下一页"]').trigger('click')
+
+    expect(wrapper.emitted('page-transition-start')).toBeUndefined()
+    expect(wrapper.find('.iiif-viewer__snapshot').exists()).toBe(false)
+  })
+
+  it('showNavigator 可在运行期开关右上角导航图', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse(INFO_V3)),
+    )
+
+    const wrapper = mountViewer({ showNavigator: true })
+    await vi.waitFor(() => expect(wrapper.emitted('load-success')).toBeTruthy())
+
+    expect(holder.mock.navigator.element.style.display).toBe('')
+
+    await wrapper.setProps({ showNavigator: false })
+    expect(holder.mock.navigator.element.style.display).toBe('none')
+
+    await wrapper.setProps({ showNavigator: true })
+    expect(holder.mock.navigator.element.style.display).toBe('')
+
+    // 已经生成过导航图，显隐只是改容器样式，不该销毁重建
+    expect(holder.mock.namespaceCalls).toHaveLength(1)
+    expect(holder.mock.viewer.navigator).toBe(holder.mock.navigator)
+  })
+
+  it('创建时关闭导航图后，运行期开启会重建实例并保留开启状态', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse(INFO_V3)),
+    )
+
+    const wrapper = mountViewer({ showNavigator: false })
+    await vi.waitFor(() => expect(wrapper.emitted('load-success')).toBeTruthy())
+
+    expect(holder.mock.viewer.navigator).toBeUndefined()
+
+    await wrapper.setProps({ showNavigator: true })
+
+    // OSD 不会为已创建的实例补建导航图，只能重建；重建必须以「期望状态」创建
+    expect(holder.mock.namespaceCalls).toHaveLength(2)
+    expect(holder.mock.namespaceCalls[1]).toMatchObject({ showNavigator: true })
+    expect(holder.mock.viewer.navigator).toBe(holder.mock.navigator)
+    expect(holder.mock.navigator.element.style.display).toBe('')
+
+    // 回归：重建之后再开关不应再次重建，否则导航图会反复丢失
+    await wrapper.setProps({ showNavigator: false })
+    await wrapper.setProps({ showNavigator: true })
+    expect(holder.mock.namespaceCalls).toHaveLength(2)
+    expect(holder.mock.viewer.navigator).toBe(holder.mock.navigator)
+  })
+
+  it('暴露 setNavigatorVisible 命令式开关导航图', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse(INFO_V3)),
+    )
+
+    const wrapper = mountViewer()
+    await vi.waitFor(() => expect(wrapper.emitted('load-success')).toBeTruthy())
+
+    wrapper.vm.setNavigatorVisible(false)
+    await wrapper.vm.$nextTick()
+    expect(holder.mock.navigator.element.style.display).toBe('none')
+
+    wrapper.vm.setNavigatorVisible(true)
+    await wrapper.vm.$nextTick()
+    expect(holder.mock.navigator.element.style.display).toBe('')
+    expect(holder.mock.namespaceCalls).toHaveLength(1)
+  })
+
+  it('运行期修改 showThumbnails prop 会同步缩略图条展开状态', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse(MANIFEST_V3)),
+    )
+
+    const wrapper = mountViewer({ source: 'https://example.org/manifest/3', showThumbnails: false })
+    await vi.waitFor(() => expect(wrapper.emitted('load-success')).toBeTruthy())
+
+    expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
+
+    await wrapper.setProps({ showThumbnails: true })
+    expect(wrapper.find('[role="listbox"]').exists()).toBe(true)
+
+    await wrapper.setProps({ showThumbnails: false })
+    expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
   })
 
   it('theme 映射为 data-theme 属性', async () => {

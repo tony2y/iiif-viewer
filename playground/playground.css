@@ -132,11 +132,25 @@ body {
 .demo__bar-controls {
   display: flex;
   flex: 1 1 auto;
-  flex-wrap: wrap;
+  /* 负外边距抵消内边距：横向滚动容器不裁掉按钮的焦点环 */
+  padding-block: 3px;
+  margin-block: -3px;
+  /*
+   * 不再折行：此前末尾的图标按钮会被单独挤到第二行（移动端尤其明显）。
+   * 资源下拉可收缩并吃掉剩余空间，图标按钮因此始终靠右；
+   * 极窄时整行横向滚动兜底（此时由下面的媒体查询改为从左开始排列）。
+   */
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
   gap: 6px;
   min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.demo__bar-controls::-webkit-scrollbar {
+  display: none;
 }
 
 /* 顶部栏资源下拉：随宽度伸缩，但不挤走图标按钮 */
@@ -144,6 +158,7 @@ body {
   flex: 1 1 180px;
   width: auto;
   max-width: min(320px, 46vw);
+  min-width: 0;
   min-height: 32px;
   padding: 0 8px;
   font-size: 12px;
@@ -387,17 +402,6 @@ body {
   min-height: 0;
 }
 
-.demo__event {
-  flex: none;
-  margin: 0;
-  overflow: hidden;
-  color: var(--demo-fg-muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
 .demo__hint {
   margin: 0;
   color: var(--demo-fg-muted);
@@ -409,6 +413,37 @@ body {
   .demo {
     gap: 8px;
     padding: 10px;
+  }
+
+  /*
+   * 移动端顶栏改为两行：品牌一行、控件一行。
+   * 控件行内部不折行（避免图标按钮孤行），空间不足时横向滚动。
+   */
+  .demo__bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 6px 8px;
+    /*
+     * 关键：列布局下 flex 子项的 min-width:auto 会让整行按「内容宽度」撑开
+     * （资源下拉以最长选项文案为基准，实测能撑到 413px > 375px 视口），
+     * 行尾的「更多设置」随即被 .demo 的 overflow:hidden 裁掉，且没有任何
+     * 滚动途径。这里显式允许收缩回容器宽度。
+     */
+    min-width: 0;
+  }
+
+  .demo__bar-controls {
+    flex: none;
+    justify-content: flex-start;
+    /* 同理：行内的 nowrap 内容也会把行自身撑宽，需允许收缩 */
+    min-width: 0;
+  }
+
+  .demo__bar .demo__select--compact {
+    flex: 1 1 auto;
+    /* 下拉框只吃到固定按钮组之外的剩余空间，行尾「更多设置」始终完整可见 */
+    max-width: min(200px, 46vw);
   }
 
   .demo__brand-text {

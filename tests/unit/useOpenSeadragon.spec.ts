@@ -1,10 +1,15 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ref } from 'vue'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { nextTick, ref } from 'vue'
 
-import { useOpenSeadragon } from '../../src/composables/useOpenSeadragon'
-import type { OpenseadragonNamespace } from '../../src/types/viewer'
+import {
+  DEFAULT_ANIMATION_TIME,
+  DEFAULT_SPRING_STIFFNESS,
+  REDUCED_MOTION_SPRING_STIFFNESS,
+} from '@/core/iiif'
+import { ZOOM_SWAP_RATIO, useOpenSeadragon } from '@/composables/useOpenSeadragon'
+import type { OpenseadragonNamespace } from '@/types'
 import { createOsdMock } from '../mocks/openseadragon'
-import { withSetup } from '../helpers'
+import { stubMatchMedia, withSetup } from '../helpers'
 
 /**
  * 共享的可变持有者：`vi.mock` 工厂是提升到模块顶部的，
@@ -26,7 +31,11 @@ function createBrokenNamespace(): OpenseadragonNamespace {
   return ((_options: unknown) => undefined) as unknown as OpenseadragonNamespace
 }
 
-function mountOsd(fitMode: 'contain' | 'width' | 'height' = 'contain', inject = true) {
+function mountOsd(
+  fitMode: 'contain' | 'width' | 'height' = 'contain',
+  inject = true,
+  fullscreenRoot?: HTMLElement,
+) {
   const container = document.createElement('div')
   const options = vi.fn(() => ({ showNavigator: true }))
 
@@ -35,6 +44,8 @@ function mountOsd(fitMode: 'contain' | 'width' | 'height' = 'contain', inject = 
       containerRef: ref(container),
       options,
       fitMode: () => fitMode,
+      // 提供全屏目标时走原生 Fullscreen API（组件根元素），否则回退 OSD 自带全屏
+      ...(fullscreenRoot ? { fullscreenRef: ref(fullscreenRoot) } : {}),
       // 显式注入假命名空间，覆盖「OpenSeadragon 由使用方提供」的主路径
       ...(inject
         ? {
@@ -49,6 +60,11 @@ function mountOsd(fitMode: 'contain' | 'width' | 'height' = 'contain', inject = 
 
 beforeEach(() => {
   holder.mock = createOsdMock()
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
 
 describe('useOpenSeadragon', () => {
@@ -220,6 +236,36 @@ describe('useOpenSeadragon', () => {
     expect(result.isFullscreen.value).toBe(true)
   })
 
+  it('提供 fullscreenRef 时全屏走原生 API，目标是组件根元素', async () => {
+    const root = document.createElement('div')
+    const requestFullscreen = vi.fn(() => Promise.resolve())
+    const exitFullscreen = vi.fn(() => Promise.resolve())
+    ;(root as HTMLElement & { requestFullscreen?: unknown }).requestFullscreen = requestFullscreen
+    const doc = document as Document & { fullscreenElement?: Element | null }
+    ;(doc as { exitFullscreen?: unknown }).exitFullscreen = exitFullscreen
+
+    const { result, osd } = mountOsd('contain', true, root)
+
+    // 未处于全屏：toggle 应请求进入全屏，而不是调 OSD 的 setFullScreen
+    expect(result.isFullscreen.value).toBe(false)
+    result.toggleFullscreen()
+    expect(requestFullscreen).toHaveBeenCalledTimes(1)
+    expect(osd.setFullScreen).not.toHaveBeenCalled()
+
+    // 浏览器派发 fullscreenchange 后状态同步（工具栏按钮图标据此切换）
+    Object.defineProperty(doc, 'fullscreenElement', { configurable: true, value: root })
+    doc.dispatchEvent(new Event('fullscreenchange'))
+    expect(result.isFullscreen.value).toBe(true)
+
+    // 再次点击退出：应调用 document.exitFullscreen
+    result.toggleFullscreen()
+    expect(exitFullscreen).toHaveBeenCalledTimes(1)
+
+    Object.defineProperty(doc, 'fullscreenElement', { configurable: true, value: null })
+    doc.dispatchEvent(new Event('fullscreenchange'))
+    expect(result.isFullscreen.value).toBe(false)
+  })
+
   it('resetHome 复位翻转与旋转并回到初始视图', () => {
     const { result, osd } = mountOsd()
 
@@ -263,6 +309,243 @@ describe('useOpenSeadragon', () => {
 
     app.unmount()
 
+    expect(osd.destroy).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('useOpenSeadragon · 视口保留与翻页过渡', () => {
+  /** `getContext` 在 jsdom 中不可用，测试里替换为只记录 drawImage 的替身 */
+  function stubCanvasContext(): ReturnType<typeof vi.fn> {
+    const drawImage = vi.fn()
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      drawImage,
+    } as unknown as CanvasRenderingContext2D)
+    return drawImage
+  }
+
+  function transition(overrides: Record<string, unknown> = {}) {
+    return { preset: 'fade' as const, duration: 20, easing: 'linear', ...overrides }
+  }
+
+  it('preserveViewport 为 true 时 open 之后不重新适配', () => {
+    const { result, osd } = mountOsd()
+    osd.viewport.goHome.mockClear()
+
+    result.open(['https://a.com/next.json'], { preserveViewport: true })
+    osd.emit('open')
+
+    expect(osd.viewport.goHome).not.toHaveBeenCalled()
+  })
+
+  it('默认（换资源）仍在 open 之后重新适配', () => {
+    const { result, osd } = mountOsd()
+    osd.viewport.goHome.mockClear()
+
+    result.open(['https://a.com/next.json'])
+    osd.emit('open')
+
+    expect(osd.viewport.goHome).toHaveBeenCalled()
+  })
+
+  it('preserveViewport 与跨页展开同时生效时不改变视口', async () => {
+    const { result, osd } = mountOsd('width')
+    osd.viewport.fitHorizontally.mockClear()
+
+    result.open(['https://a.com/left.json', 'https://a.com/right.json'], {
+      spread: true,
+      preserveViewport: true,
+    })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    // 跨页排布仍需重排图片位置，但不应把视图拉回初始状态
+    expect(osd.items[1].setPosition).toHaveBeenCalled()
+    expect(osd.viewport.fitHorizontally).not.toHaveBeenCalled()
+    expect(osd.viewport.goHome).not.toHaveBeenCalled()
+  })
+
+  it('fade 过渡：先插入快照层，新画面就位后淡出并移除', async () => {
+    const drawImage = stubCanvasContext()
+    const { result, osd, container } = mountOsd()
+    const onStart = vi.fn()
+    const onEnd = vi.fn()
+
+    result.open(['https://a.com/next.json'], {
+      transition: transition({ onStart, onEnd }),
+    })
+
+    // 快照先于换页插入，因此切换瞬间旧画面仍然可见
+    const snapshot = container.querySelector('.iiif-viewer__snapshot') as HTMLCanvasElement
+    expect(snapshot).toBeInstanceOf(HTMLCanvasElement)
+    expect(drawImage).toHaveBeenCalledWith(osd.tileCanvas, 0, 0)
+    expect(onStart).toHaveBeenCalledTimes(1)
+    expect(result.transitioning.value).toBe(true)
+
+    // 假 OSD 的 open() 会同步派发 open 事件，快照随即开始淡出
+    expect(snapshot.style.opacity).toBe('0')
+
+    await vi.waitFor(() => expect(onEnd).toHaveBeenCalledTimes(1))
+    expect(onEnd).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('.iiif-viewer__snapshot')).toBeNull()
+    expect(result.transitioning.value).toBe(false)
+  })
+
+  it('画布尚无像素时 fade 降级为直接切换，不阻断换页', () => {
+    const { result, osd, container } = mountOsd()
+    // 宽高为 0 表示画面还没渲染出可复制的像素
+    osd.tileCanvas.width = 0
+    osd.tileCanvas.height = 0
+    const onEnd = vi.fn()
+
+    result.open(['https://a.com/next.json'], { transition: transition({ onEnd }) })
+
+    expect(container.querySelector('.iiif-viewer__snapshot')).toBeNull()
+    expect(osd.open).toHaveBeenCalledTimes(1)
+    // 降级路径同样必须收尾，否则宿主的过渡态会一直卡住
+    expect(onEnd).toHaveBeenCalledTimes(1)
+  })
+
+  it('zoom-swap 过渡：旧页先缩小，交换后回弹到原缩放', async () => {
+    const { result, osd } = mountOsd()
+    osd.viewport.zoomTo.mockClear()
+    const onEnd = vi.fn()
+
+    result.open(['https://a.com/next.json'], {
+      preserveViewport: true,
+      transition: { preset: 'zoom-swap', duration: 10, easing: 'linear', onEnd },
+    })
+
+    // 阶段一：按比例缩小（假实现初始 zoom 为 1），此时尚未交换内容
+    expect(osd.viewport.zoomTo).toHaveBeenCalledWith(ZOOM_SWAP_RATIO)
+    expect(osd.open).not.toHaveBeenCalled()
+
+    await new Promise((resolve) => setTimeout(resolve, 40))
+
+    // 阶段二：内容交换后回弹到用户原来的缩放
+    expect(osd.open).toHaveBeenCalledTimes(1)
+    expect(osd.viewport.zoomTo).toHaveBeenLastCalledWith(1)
+    await vi.waitFor(() => expect(onEnd).toHaveBeenCalledTimes(1))
+  })
+
+  it('zoom-swap 换资源时回弹到适配视图', async () => {
+    const { result, osd } = mountOsd()
+    osd.viewport.goHome.mockClear()
+
+    result.open(['https://a.com/other.json'], {
+      transition: { preset: 'zoom-swap', duration: 10, easing: 'linear' },
+    })
+    await new Promise((resolve) => setTimeout(resolve, 40))
+
+    expect(osd.viewport.goHome).toHaveBeenCalled()
+  })
+
+  it('连续翻页时上一轮过渡立即收尾，只保留当前快照', async () => {
+    stubCanvasContext()
+    const { result, container } = mountOsd()
+    const firstEnd = vi.fn()
+    const secondEnd = vi.fn()
+
+    result.open(['https://a.com/1.json'], { transition: transition({ onEnd: firstEnd }) })
+    result.open(['https://a.com/2.json'], { transition: transition({ onEnd: secondEnd }) })
+
+    expect(firstEnd).toHaveBeenCalledTimes(1)
+    expect(container.querySelectorAll('.iiif-viewer__snapshot')).toHaveLength(1)
+    expect(result.transitioning.value).toBe(true)
+
+    await vi.waitFor(() => expect(secondEnd).toHaveBeenCalledTimes(1))
+    expect(container.querySelectorAll('.iiif-viewer__snapshot')).toHaveLength(0)
+    expect(result.transitioning.value).toBe(false)
+  })
+
+  it('卸载时清理进行中的过渡与快照', () => {
+    stubCanvasContext()
+    const { result, app, container } = mountOsd()
+    const onEnd = vi.fn()
+
+    result.open(['https://a.com/next.json'], {
+      transition: transition({ duration: 500, onEnd }),
+    })
+    expect(container.querySelector('.iiif-viewer__snapshot')).not.toBeNull()
+
+    app.unmount()
+
+    expect(container.querySelector('.iiif-viewer__snapshot')).toBeNull()
+    expect(onEnd).toHaveBeenCalledTimes(1)
+    expect(result.transitioning.value).toBe(false)
+  })
+
+  it('运行期切换「减弱动效」会改写已创建实例的动效参数', async () => {
+    const media = stubMatchMedia(false)
+    const { result, osd } = mountOsd()
+    const viewer = osd.viewer as { animationTime?: number; springStiffness?: number }
+
+    // 创建时按 options() 推导：测试用的 options 未声明动效参数，落到库默认值
+    expect(viewer.animationTime).toBe(DEFAULT_ANIMATION_TIME)
+    expect(viewer.springStiffness).toBe(DEFAULT_SPRING_STIFFNESS)
+
+    media.emit(true)
+    await nextTick()
+
+    expect(result.reducedMotion.value).toBe(true)
+    expect(viewer.animationTime).toBe(0)
+    expect(viewer.springStiffness).toBe(REDUCED_MOTION_SPRING_STIFFNESS)
+
+    // 关闭减弱动效后恢复默认，而不是保留 0
+    media.emit(false)
+    await nextTick()
+
+    expect(result.reducedMotion.value).toBe(false)
+    expect(viewer.animationTime).toBe(DEFAULT_ANIMATION_TIME)
+    expect(viewer.springStiffness).toBe(DEFAULT_SPRING_STIFFNESS)
+  })
+})
+
+describe('useOpenSeadragon · 导航图（小地图）', () => {
+  it('隐藏时只置 display: none，不销毁实例', () => {
+    const { result, osd } = mountOsd()
+
+    expect(result.navigatorVisible.value).toBe(true)
+
+    result.setNavigatorVisible(false)
+
+    expect(result.navigatorVisible.value).toBe(false)
+    expect(osd.navigator.element.style.display).toBe('none')
+    // 直接显隐元素：视图状态与已加载瓦片都不会丢失
+    expect(osd.destroy).not.toHaveBeenCalled()
+  })
+
+  it('再次显示时恢复元素，且不重建实例', () => {
+    const { result, osd } = mountOsd()
+
+    result.setNavigatorVisible(false)
+    result.setNavigatorVisible(true)
+
+    expect(osd.navigator.element.style.display).toBe('')
+    // 实例仍是创建时的那一个
+    expect(osd.namespaceCalls).toHaveLength(1)
+  })
+
+  it('创建时未启用、之后再开启：重建实例并恢复画面', () => {
+    const container = document.createElement('div')
+    const osd = createOsdMock()
+    const { result } = withSetup(() =>
+      useOpenSeadragon({
+        containerRef: ref(container),
+        options: () => ({ showNavigator: false }),
+        openseadragon: () => osd.namespace as unknown as OpenseadragonNamespace,
+      }),
+    )
+
+    // OSD 没有生成导航图
+    expect(result.navigatorVisible.value).toBe(false)
+    result.open(['https://a.com/info.json'])
+
+    result.setNavigatorVisible(true)
+
+    // 应重建实例（OSD 自身无法在实例创建后再生成导航图）
+    expect(osd.namespaceCalls).toHaveLength(2)
+    expect(result.navigatorVisible.value).toBe(true)
+    // 重建后恢复之前的画面
+    expect(osd.open).toHaveBeenLastCalledWith(['https://a.com/info.json'])
     expect(osd.destroy).toHaveBeenCalledTimes(1)
   })
 })

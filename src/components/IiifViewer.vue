@@ -21,7 +21,7 @@ import {
   normalizeColorAdjustments,
 } from '@/core/color'
 import { createOsdOptions, prefersReducedMotion } from '@/core/iiif'
-import { resolveToolbarOptions } from '@/types/viewer'
+import { resolvePageTransitionOptions, resolveToolbarOptions } from '@/types/viewer'
 import type {
   IiifColorAdjustments,
   IiifViewerEmits,
@@ -60,6 +60,7 @@ const props = withDefaults(defineProps<IiifViewerProps>(), {
   osdOptions: undefined,
   initialDoublePage: false,
   colorAdjust: true,
+  pageTransition: undefined,
   openseadragon: undefined,
 })
 
@@ -131,6 +132,14 @@ watch(
   },
 )
 
+// 与 showInfoPanel 对称：运行期修改 showThumbnails 也要同步到缩略图条的展开状态
+watch(
+  () => props.showThumbnails,
+  (value) => {
+    thumbnailsOpen.value = value
+  },
+)
+
 /* -------------------------------------------------------------------------- */
 /* 资源加载                                                                    */
 /* -------------------------------------------------------------------------- */
@@ -174,10 +183,29 @@ function buildOsdOptions() {
 
 const osd = useOpenSeadragon({
   containerRef: stageRef,
+  // 全屏目标用组件根节点：工具栏 / 状态栏与画布同屏，全屏时不被藏掉
+  fullscreenRef: rootRef,
   options: buildOsdOptions,
   fitMode: () => props.fitMode,
   openseadragon: () => props.openseadragon ?? config.openseadragon,
 })
+
+/* -------------------------------------------------------------------------- */
+/* 翻页过渡                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * 当前生效的过渡配置；`null` 表示本次不做过渡。
+ *
+ * 「减弱动效」由 `useOpenSeadragon` 统一订阅，这里直接复用它的状态，
+ * 既避免重复监听 `matchMedia`，也保证过渡与 OSD 动效参数的判断完全一致。
+ */
+const resolvedTransition = computed(() =>
+  resolvePageTransitionOptions(
+    props.pageTransition ?? config.pageTransition,
+    osd.reducedMotion.value,
+  ),
+)
 
 /* -------------------------------------------------------------------------- */
 /* 色彩调节                                                                    */
@@ -378,16 +406,67 @@ function handleOpen(next: IiifViewerSource): void {
 /* 响应式同步                                                                  */
 /* -------------------------------------------------------------------------- */
 
-// tileSources 就绪且 OSD 实例创建完成后渲染
+/**
+ * 最近一次交给 OSD 打开的画布信息。
+ *
+ * - `index`：用于过渡事件的 from / to；
+ * - `count`：图像数量变化（如单页 ↔ 双页）意味着版面几何整体改变，应当重新适配；
+ * - `epoch`：加载轮次变化意味着换了资源（或重新加载），同样应当重新适配。
+ */
+let lastOpenedIndex = 0
+let lastOpenedCount = 0
+let lastOpenedEpoch: number | null = null
+/** 是否已经渲染过画面：第一个画面没有可过渡的旧内容 */
+let hasRendered = false
+
+// tileSources 就绪且 OSD 实例创建完成后渲染。
+//
+// 依赖「资源签名 + 加载轮次」而非数组本身：两种因素会让 `tileSources` 产生新引用，
+// 但资源其实没变，重新 open 只会白白清空瓦片缓存并复位视口——
+// 1. 语言切换：重新解析 manifest 标签，只换文案不换图像；
+// 2. 双页排布等上层状态变化引发的重算。
+// 反之，加载轮次变化意味着「同一份资源被重新加载」（例如 retry），必须重新 open。
 watch(
-  [source.tileSources, osd.isReady],
-  ([tileSources, ready]) => {
+  [source.tileSourcesKey, source.loadEpoch, osd.isReady],
+  ([, epoch, ready]) => {
     if (!ready) return
+    const tileSources = source.tileSources.value
     // 新一轮加载开始时清空上一轮的 OSD 错误，避免错误卡片残留
     osd.clearError()
     if (tileSources.length === 0) return
-    // 双页展开：两页紧贴排布，形成跨页效果
-    osd.open(tileSources, { spread: source.doublePage.value && tileSources.length > 1 })
+
+    const to = source.currentIndex.value
+    const from = lastOpenedIndex
+    /**
+     * 只有「同一份资源、图像数量不变」的换页才保留视口——
+     * 此时页面几何一致，用户当前的缩放与平移仍然有意义；
+     * 换资源或切换单页 / 双页时版面整体改变，保留旧视口只会看到错位的内容。
+     */
+    const preserveViewport =
+      epoch === lastOpenedEpoch && tileSources.length === lastOpenedCount && hasRendered
+
+    lastOpenedIndex = to
+    lastOpenedCount = tileSources.length
+    lastOpenedEpoch = epoch
+
+    // 首个画面无需过渡（没有可淡出的旧内容）
+    const transition = hasRendered ? resolvedTransition.value : null
+    hasRendered = true
+
+    osd.open(tileSources, {
+      // 双页展开：两页紧贴排布，形成跨页效果
+      spread: source.doublePage.value && tileSources.length > 1,
+      preserveViewport,
+      ...(transition
+        ? {
+            transition: {
+              ...transition,
+              onStart: () => emit('page-transition-start', { from, to, preset: transition.preset }),
+              onEnd: () => emit('page-transition-end', { from, to, preset: transition.preset }),
+            },
+          }
+        : {}),
+    })
   },
   { immediate: true },
 )
@@ -405,6 +484,17 @@ watch(
   () => {
     sourceOverride.value = null
   },
+)
+
+/**
+ * 运行期开关右上角的导航图（小地图）。
+ *
+ * 创建实例时已按 `showNavigator` / `osdOptions.showNavigator` 决定过一次，
+ * 这里只负责之后的切换：直接显隐导航图容器；若创建时就没生成，则重建实例再恢复画面。
+ */
+watch(
+  () => props.showNavigator,
+  (value) => osd.setNavigatorVisible(value ?? true),
 )
 
 watch(
@@ -489,6 +579,7 @@ defineExpose({
   retry: source.retry,
   setDoublePage: source.setDoublePage,
   toggleDoublePage: source.toggleDoublePage,
+  setNavigatorVisible: osd.setNavigatorVisible,
   setColors,
   resetColors,
   getState: () => viewerState.value,
@@ -501,6 +592,7 @@ defineExpose({
     class="iiif-viewer"
     :data-theme="resolvedTheme"
     :data-locale="i18n.resolvedLocale.value"
+    :data-page-transition="resolvedTransition?.preset ?? 'none'"
   >
     <div class="iiif-viewer__body" :style="bodyStyle">
       <!-- OpenSeadragon 挂载点；聚焦后才响应快捷键 -->

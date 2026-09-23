@@ -120,6 +120,31 @@
         </div>
 
         <div class="demo__field">
+          <span class="demo__label">翻页动画</span>
+          <select v-model="pageTransition" class="demo__select">
+            <option v-for="item in TRANSITIONS" :key="item.label" :value="item.value">
+              {{ item.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="demo__field">
+          <span class="demo__label">显示</span>
+          <div class="demo__row">
+            <button
+              type="button"
+              class="demo__button"
+              :class="{ 'demo__button--active': showNavigator }"
+              :aria-pressed="showNavigator"
+              title="右上角的小地图"
+              @click="showNavigator = !showNavigator"
+            >
+              导航图（小地图）
+            </button>
+          </div>
+        </div>
+
+        <div class="demo__field">
           <span class="demo__label">面板</span>
           <div class="demo__row">
             <button
@@ -163,17 +188,17 @@
           :aspect-ratio="aspectRatio"
           :show-thumbnails="showThumbnails"
           :show-info-panel="showInfoPanel"
+          :show-navigator="showNavigator"
           :initial-double-page="initialDoublePage"
           :color-adjust="colorAdjustEnabled"
+          :page-transition="pageTransition"
           :toolbar="{ position }"
-          :osd-options="{ showNavigator: true, crossOriginPolicy: 'Anonymous' }"
+          :osd-options="{ crossOriginPolicy: 'Anonymous' }"
           @load-success="onLoadSuccess"
           @load-error="onLoadError"
           @page-change="onPageChange"
         />
       </div>
-
-      <p class="demo__event">{{ lastEvent }}</p>
     </section>
   </div>
 </template>
@@ -194,6 +219,7 @@ import { IiifViewer, VIEWER_ICONS } from '@/index'
 import type {
   IiifViewerExposed,
   IiifViewerLoadSuccessPayload,
+  IiifViewerPageTransition,
   IiifViewerSource,
   IiifViewerSourceType,
   IiifViewerTheme,
@@ -251,7 +277,7 @@ const LOCALES = [
 const THEMES: { label: string; value: IiifViewerTheme; icon: 'moon' | 'sun' | 'monitor' }[] = [
   { label: '暗色', value: 'dark', icon: 'moon' },
   { label: '亮色', value: 'light', icon: 'sun' },
-  { label: '跟随系统', value: 'auto', icon: 'monitor' },
+  // { label: '跟随系统', value: 'auto', icon: 'monitor' },
 ]
 
 const POSITIONS: { label: string; value: IiifViewerToolbarPosition }[] = [
@@ -262,6 +288,13 @@ const POSITIONS: { label: string; value: IiifViewerToolbarPosition }[] = [
 ]
 
 const RATIOS = ['4 / 3', '16 / 9', '1', 'auto'] as const
+
+/** 翻页动画预设：`false` 即关闭，便于对比有无过渡的观感差异 */
+const TRANSITIONS: { label: string; value: IiifViewerPageTransition }[] = [
+  { label: '关闭', value: false },
+  { label: '淡出快照（fade）', value: 'fade' },
+  { label: '缩放交换（zoom-swap）', value: 'zoom-swap' },
+]
 
 /**
  * 顶部控制条用到的图标路径。
@@ -297,6 +330,10 @@ const showThumbnails = ref(true)
 const showInfoPanel = ref(false)
 const initialDoublePage = ref(true)
 const colorAdjustEnabled = ref(true)
+/** 右上角小地图；关闭后仍可在运行期重新开启 */
+const showNavigator = ref(true)
+/** 翻页动画：默认开启淡出快照，便于直观比较「整幅复位」与「保留视口」的差异 */
+const pageTransition = ref<IiifViewerPageTransition>('fade')
 
 /** 当前生效的资源与类型：选择预设时用预设声明，手动打开地址时交回自动识别 */
 const activeSource = ref<IiifViewerSource>(PRESETS[0]!.value)
