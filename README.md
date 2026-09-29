@@ -2,7 +2,7 @@
 
 > 基于 **Vue 3 + Vite + TypeScript + OpenSeadragon** 的现代 IIIF 阅读器插件，可嵌入任意 Vue 3 应用。
 
-[![npm version](https://img.shields.io/badge/npm-0.1.0-blue)](https://www.npmjs.com/package/@tony2y/iiif-viewer)
+[![npm version](https://img.shields.io/badge/npm-0.1.2-blue)](https://www.npmjs.com/package/@tony2y/iiif-viewer)
 [![license](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 [![vue](https://img.shields.io/badge/vue-%5E3.5-42b883)](https://vuejs.org/)
 [![openseadragon](https://img.shields.io/badge/openseadragon-%5E6.0-blue)](https://openseadragon.github.io/)
@@ -22,7 +22,7 @@
 | **IIIF 标准**   | IIIF **Image API 2.x / 3.x**（`info.json`）；IIIF **Presentation API 2.1 / 3.0**（`manifest.json` 多画布翻阅）；标签语言映射、metadata / rights / provider / thumbnail 归一化                              |
 | **输入识别**    | 自动识别「Image API 服务基址」「`info.json` 地址」「`manifest.json` 地址」「静态图片地址」「OSD tileSource」；URL 启发式识别失败时**按响应内容二次判定**（兼容 `/presentation/{id}` 等非常规地址）         |
 | **图像交互**    | 缩放（滚轮 / 双击 / 按钮 / 键盘）、平移拖拽、任意角度旋转、水平翻转、复位、全屏、OSD 内置导航图                                                                                                            |
-| **多画布**      | 上一页 / 下一页、页码状态、缩略图条（缩略图缺失时自动回退到 Image API 的 `full/!120,120/0/default.jpg`）；翻页保留当前缩放与平移，可选用 `fade` / `zoom-swap` 过渡                                         |
+| **多画布**      | 上一页 / 下一页、页码状态、缩略图条（缩略图缺失时自动回退到 Image API 的 `full/!120,120/0/default.jpg`）；翻页保留当前缩放与平移，可选用 `fade` / `book-flip` / `zoom-swap` 过渡，等待期显示复古翻书加载指示                                         |
 | **单页/双页**   | 单页 / 双页展开切换（工具栏按钮、`initialDoublePage` Prop 与 `setDoublePage()` / `toggleDoublePage()`）；双页下标吸附到偶数、翻页步进为 2，**两页等高且书脊处紧贴无缝**，最后一跨页只剩 1 页时单页满宽显示 |
 | **色彩调节**    | 亮度 / 对比度 / 饱和度实时调节：工具栏单按钮 → 右侧滑出面板，合成一条 CSS `filter` 作用于画布（导航图不受影响，三种绘制器通用，不重拉瓦片）                                                                |
 | **目录（TOC）** | 解析 IIIF `structures`（v2 `ranges` / v3 `items`）为统一目录树；信息面板「目录 / 作品信息」双 Tab，点击条目跳转并高亮当前页                                                                                |
@@ -534,7 +534,7 @@ const osd = window.OpenSeadragon as typeof import('openseadragon')
 | `osdOptions`        | `Partial<OpenSeadragon.Options>`            | `undefined`                                 | 透传 / 覆盖 OpenSeadragon 原生配置，**优先级最高**                                                            |
 | `initialDoublePage` | `boolean`                                   | `false`                                     | 初始是否以「双页展开」显示；运行期修改该 Prop 也会同步切换，等价于调用 `setDoublePage()`                      |
 | `colorAdjust`       | `boolean`                                   | `true`                                      | 是否启用「亮度 / 对比度 / 饱和度」调节；`false` 时隐藏按钮、不渲染面板并清除画面滤镜                          |
-| `pageTransition`    | `IiifViewerPageTransition`                  | `false`                                     | 翻页 / 换资源过渡：`false` 关闭，或传 `'fade'` / `'zoom-swap'` 预设名与细项配置；减弱动效时自动降级           |
+| `pageTransition`    | `IiifViewerPageTransition`                  | `false`                                     | 翻页 / 换资源过渡：`false` 关闭，或传 `'fade'` / `'book-flip'` / `'zoom-swap'` 预设名与细项配置；减弱动效时自动降级           |
 | `openseadragon`     | `OpenseadragonNamespace`                    | `undefined`                                 | 显式指定 OpenSeadragon 来源（不传则用 peerDependency）；传入对象会经 `verifyOpenSeadragon()` 校验             |
 
 #### 与 OSD 的默认配置差异

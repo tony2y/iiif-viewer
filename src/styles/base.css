@@ -89,9 +89,11 @@
 }
 
 /*
- * 翻页过渡的快照层（`pageTransition: 'fade'`）。
+ * 翻页过渡的快照层（`pageTransition: 'fade'` / `'book-flip'`）。
  * 由 JS 复制当前画布像素后插入舞台内：层级高于 OSD 画布，但仍整体处于舞台的
  * 层叠上下文内，因此工具栏与抽屉面板依旧浮在其上、可正常操作。
+ * `book-flip` 的 transform / transform-origin 由 JS 按翻页方向动态写入，
+ * 这里只声明与方向无关的兜底属性。
  */
 .iiif-viewer__snapshot {
   position: absolute;
@@ -101,6 +103,9 @@
   height: 100%;
   pointer-events: none;
   opacity: 1;
+  /* 翻转越过 90° 时不渲染镜像背面，防止快照"闪"出反字画面 */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* -------------------------------------------------------------------------- */

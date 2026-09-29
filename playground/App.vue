@@ -210,7 +210,7 @@
  * 顶部为单行紧凑控制条：资源下拉与主题 / 语言图标常驻，其余设置收进「更多」弹层，
  * 把纵向空间让给查看器；查看器按可视高度做整页适配，打开即完整可见、无需手动缩放。
  *
- * @author Zhu Yong
+ * @author Tony
  * @date 2026-09-22
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
@@ -293,6 +293,7 @@ const RATIOS = ['4 / 3', '16 / 9', '1', 'auto'] as const
 const TRANSITIONS: { label: string; value: IiifViewerPageTransition }[] = [
   { label: '关闭', value: false },
   { label: '淡出快照（fade）', value: 'fade' },
+  { label: '翻开书页（book-flip）', value: 'book-flip' },
   { label: '缩放交换（zoom-swap）', value: 'zoom-swap' },
 ]
 
@@ -331,7 +332,7 @@ const showInfoPanel = ref(false)
 const initialDoublePage = ref(true)
 const colorAdjustEnabled = ref(true)
 /** 右上角小地图；关闭后仍可在运行期重新开启 */
-const showNavigator = ref(true)
+const showNavigator = ref(false)
 /** 翻页动画：默认开启淡出快照，便于直观比较「整幅复位」与「保留视口」的差异 */
 const pageTransition = ref<IiifViewerPageTransition>('fade')
 

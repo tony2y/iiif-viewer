@@ -39,6 +39,19 @@ export const SPREAD_PAGE_HEIGHT = 1000
 export const ZOOM_SWAP_RATIO = 0.88
 
 /**
+ * 加载指示延迟展示时长（ms）。
+ * 缓存命中时翻页几乎瞬时完成（仅 1~3 帧），若立即展示指示器就会「闪一下」留下残影，
+ * 延迟到此时长仍未完成才展示。
+ */
+export const PAGE_LOADING_DELAY_MS = 180
+
+/** 加载指示最短展示时长（ms）：一旦展示至少保持此时长，避免出现即消失的抖动 */
+export const PAGE_LOADING_MIN_MS = 320
+
+/** 翻页加载指示的兜底超时（毫秒）：瓦片事件迟迟不来时也必须收起指示器 */
+export const PAGE_LOADING_FALLBACK_MS = 8000
+
+/**
  * OSD `open()` 可接受的入参。
  *
  * OpenSeadragon 自带类型把入参收窄为 `TileSourceSpecifier`（要求显式提供 `tileSource` 字段），
@@ -92,8 +105,13 @@ export interface OpenTransitionOptions {
   preset: ResolvedPageTransitionPreset
   /** 过渡时长（毫秒） */
   duration: number
-  /** `fade` 使用的 CSS 缓动函数 */
+  /** 快照类过渡（`fade` / `book-flip`）使用的 CSS 缓动函数 */
   easing: string
+  /**
+   * 翻页方向，供 `book-flip` 决定书脊位置：前进（下一页）书脊在左、
+   * 页面自右向左掀起；后退（上一页）相反。不传按前进处理。
+   */
+  direction?: 'forward' | 'backward'
   /** 过渡开始（此时旧画面仍然可见） */
   onStart?: () => void
   /**
@@ -145,6 +163,8 @@ export interface UseOpenSeadragonReturn {
   osdVersion: Ref<string | undefined>
   /** 是否正在播放翻页过渡 */
   transitioning: Ref<boolean>
+  /** 是否正在等待翻页后的新画面（首个瓦片绘出前为真，供轻量加载指示使用） */
+  pageLoading: Ref<boolean>
   /** 右上角导航图（小地图）是否可见 */
   navigatorVisible: Ref<boolean>
   /** 显示 / 隐藏导航图（小地图） */
@@ -230,6 +250,8 @@ export function useOpenSeadragon(options: UseOpenSeadragonOptions): UseOpenSeadr
   const osdVersion = ref<string | undefined>(undefined)
   /** 是否正在播放翻页过渡 */
   const transitioning = ref(false)
+  /** 是否正在等待翻页后的新画面：open 起至首个瓦片绘出（或兜底超时） */
+  const pageLoading = ref(false)
   /** 右上角导航图（小地图）的期望显示状态；创建实例与重建时都以它为准 */
   const navigatorVisible = ref(options.options().showNavigator !== false)
   /** 系统「减弱动效」设置，运行期可变 */
@@ -251,6 +273,71 @@ export function useOpenSeadragon(options: UseOpenSeadragonOptions): UseOpenSeadr
   let activeTransition: { end: () => void; onOpened?: () => void } | null = null
   /** 跨页排布的延迟任务句柄 */
   let spreadTimer: ReturnType<typeof setTimeout> | null = null
+  /** 延迟展示的句柄：到期仍未完成才真正亮起指示器 */
+  let pageLoadingDelayTimer: ReturnType<typeof setTimeout> | null = null
+  /** 最短展示时长的句柄：已亮起时保证至少展示一段时间再熄灭 */
+  let pageLoadingMinTimer: ReturnType<typeof setTimeout> | null = null
+  /** 兜底超时的句柄：瓦片事件迟迟不来时保证指示器不会常驻 */
+  let pageLoadingFallbackTimer: ReturnType<typeof setTimeout> | null = null
+  /** 指示器实际亮起的时刻，用于计算最短展示时长 */
+  let pageLoadingShownAt = 0
+
+  /** 清掉指示器的全部定时器（不影响 pageLoading 当前值） */
+  function clearPageLoadingTimers(): void {
+    for (const timer of [pageLoadingDelayTimer, pageLoadingMinTimer, pageLoadingFallbackTimer]) {
+      if (timer !== null) clearTimeout(timer)
+    }
+    pageLoadingDelayTimer = null
+    pageLoadingMinTimer = null
+    pageLoadingFallbackTimer = null
+  }
+
+  /** 立即熄灭指示器并清理定时器（失败 / 销毁等不需要最短展示的场景） */
+  function hidePageLoadingNow(): void {
+    clearPageLoadingTimers()
+    pageLoading.value = false
+  }
+
+  /**
+   * 翻页开始：延迟展示指示器。
+   *
+   * 缓存命中时翻页几乎瞬时完成（仅 1~3 帧），若立即展示指示器就会「闪一下」留下残影，
+   * 延迟 `PAGE_LOADING_DELAY_MS` 仍未完成才展示。
+   */
+  function schedulePageLoading(): void {
+    hidePageLoadingNow()
+    pageLoadingDelayTimer = setTimeout(() => {
+      pageLoadingDelayTimer = null
+      pageLoading.value = true
+      pageLoadingShownAt = Date.now()
+      // 兜底：瓦片事件迟迟不来时保证指示器不会常驻
+      pageLoadingFallbackTimer = setTimeout(hidePageLoadingNow, PAGE_LOADING_FALLBACK_MS)
+    }, PAGE_LOADING_DELAY_MS)
+  }
+
+  /**
+   * 翻页完成：收起指示器。
+   *
+   * - 仍在延迟期内就完成 → 直接取消，指示器从未出现（缓存命中路径）；
+   * - 已展示但不足最短展示时长 → 推迟到满 `PAGE_LOADING_MIN_MS` 再熄灭，
+   *   避免「出现即消失」的抖动。
+   */
+  function hidePageLoading(): void {
+    if (!pageLoading.value) {
+      clearPageLoadingTimers()
+      return
+    }
+    clearPageLoadingTimers()
+    const remain = PAGE_LOADING_MIN_MS - (Date.now() - pageLoadingShownAt)
+    if (remain <= 0) {
+      pageLoading.value = false
+      return
+    }
+    pageLoadingMinTimer = setTimeout(() => {
+      pageLoadingMinTimer = null
+      pageLoading.value = false
+    }, remain)
+  }
 
   function syncZoom(): void {
     const instance = viewer.value
@@ -402,7 +489,7 @@ export function useOpenSeadragon(options: UseOpenSeadragonOptions): UseOpenSeadr
   }
 
   /**
-   * 把当前画面固化为覆盖层，供 `fade` 过渡使用。
+   * 把当前画面固化为覆盖层，供快照类过渡（`fade` / `book-flip`）使用。
    *
    * 用 `drawImage` 复制像素而不是 `toDataURL()`：后者要求画布未被跨域污染，
    * 而 `drawImage` 即使在来源被污染时也能正常绘制（本模块从不回读像素）。
@@ -515,6 +602,45 @@ export function useOpenSeadragon(options: UseOpenSeadragonOptions): UseOpenSeadr
       return
     }
 
+    if (transition.preset === 'book-flip') {
+      overlay = createSnapshot()
+      /**
+       * 翻书：旧页快照绕「书脊」做 3D 翻转并渐隐，露出下方的新页面。
+       * 前进（下一页）书脊在左、页面自右向左掀起，如真实翻书；
+       * 后退（上一页）书脊在右，反向掀起。与 `fade` 一样等新页面就位才启动，
+       * 瓦片在路上时旧页保持完整，不会露出空白。
+       */
+      const flip = (): void => {
+        const element = overlay
+        if (!element) {
+          end()
+          return
+        }
+        const forward = transition.direction !== 'backward'
+        element.style.backfaceVisibility = 'hidden'
+        element.style.willChange = 'transform, opacity'
+        element.style.transformOrigin = forward ? 'left center' : 'right center'
+        element.style.transform = 'perspective(1200px) rotateY(0deg)'
+        element.style.opacity = '1'
+        element.style.transition =
+          `transform ${transition.duration}ms ${transition.easing}, opacity ${transition.duration}ms ${transition.easing}`
+        // 读一次布局属性，确认初始状态已生效，翻转才会真正发生
+        void element.offsetWidth
+        const angle = forward ? '-72deg' : '72deg'
+        element.style.transform = `perspective(1200px) rotateY(${angle})`
+        element.style.opacity = '0'
+        schedule(transition.duration + 40, () => {
+          element.remove()
+          end()
+        })
+      }
+      onOpened = flip
+      // 兜底：瓦片源失败时不会触发 open，超时后仍需收尾
+      schedule(transition.duration + 800, flip)
+      run()
+      return
+    }
+
     // zoom-swap：旧页先轻微缩小，内容交换后回弹
     const viewport = viewer.value?.viewport
     const zoom = viewport?.getZoom?.() ?? null
@@ -603,6 +729,17 @@ export function useOpenSeadragon(options: UseOpenSeadragonOptions): UseOpenSeadr
 
     instance.addHandler('open-failed', (event) => {
       error.value = new IiifViewerError('HTTP_ERROR', event.message, event.source)
+      // 打开失败不会再有瓦片绘出，立即熄灭翻页加载指示（随后由错误界面接管）
+      hidePageLoadingNow()
+    })
+
+    /**
+     * 新画面的第一块瓦片绘出即视为「翻页完成」。
+     * `tile-drawn` 每帧都会触发，仅在指示器已亮起或处于延迟展示期内处理一次：
+     * 延迟期内完成即取消展示（缓存命中路径），已亮起则按最短展示时长收起。
+     */
+    instance.addHandler('tile-drawn', () => {
+      if (pageLoading.value || pageLoadingDelayTimer !== null) hidePageLoading()
     })
 
     // 弹簧动画期间持续同步缩放，保证状态栏数值平滑跟随
@@ -683,6 +820,7 @@ export function useOpenSeadragon(options: UseOpenSeadragonOptions): UseOpenSeadr
     settleAfterOpen = null
     // 过渡的快照与定时器必须先收回，否则会在宿主容器里留下残影
     finishTransition()
+    hidePageLoadingNow()
     if (spreadTimer !== null) {
       clearTimeout(spreadTimer)
       spreadTimer = null
@@ -714,6 +852,8 @@ export function useOpenSeadragon(options: UseOpenSeadragonOptions): UseOpenSeadr
     spreadMode = openOptions.spread === true
     // 同上：'open' 事件里据此决定是否重新适配视口
     preserveViewportForOpen = openOptions.preserveViewport === true
+    // 同资源翻页时新画面有一段清空重建的窗口期，安排轻量加载指示（延迟展示）
+    if (preserveViewportForOpen) schedulePageLoading()
     settleAfterOpen = null
     // 记录入参：重建实例（例如按需启用导航图）后据此恢复画面，且不重放过渡
     lastOpened = {
@@ -835,6 +975,7 @@ export function useOpenSeadragon(options: UseOpenSeadragonOptions): UseOpenSeadr
     error,
     osdVersion,
     transitioning,
+    pageLoading,
     navigatorVisible,
     setNavigatorVisible,
     reducedMotion,

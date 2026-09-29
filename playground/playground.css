@@ -77,8 +77,7 @@ body {
 .demo__bar {
   /* 「更多」弹层的定位上下文 */
   position: relative;
-  /* 高于查看器，保证弹层覆盖在预览区之上 */
-  z-index: 20;
+  z-index: 40;
   display: flex;
   flex: none;
   flex-wrap: wrap;

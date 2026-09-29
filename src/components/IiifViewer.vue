@@ -461,6 +461,8 @@ watch(
         ? {
             transition: {
               ...transition,
+              // 供 book-flip 决定书脊位置；goToPage 跳页按目标页相对位置判定
+              direction: to >= from ? ('forward' as const) : ('backward' as const),
               onStart: () => emit('page-transition-start', { from, to, preset: transition.preset }),
               onEnd: () => emit('page-transition-end', { from, to, preset: transition.preset }),
             },
@@ -604,6 +606,12 @@ defineExpose({
         :aria-label="t('viewer.label')"
         :aria-describedby="'iiif-viewer-hint'"
         @keydown="onStageKeydown"
+      />
+
+      <!-- 翻页加载指示：同资源翻页后、新画面首块瓦片绘出前显示 -->
+      <ViewerLoading
+        v-if="osd.pageLoading.value && source.status.value !== 'loading'"
+        variant="page"
       />
 
       <!-- 加载态 -->

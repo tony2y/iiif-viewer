@@ -2,7 +2,7 @@
 
 > A modern IIIF image viewer plugin built on **Vue 3 + Vite + TypeScript + OpenSeadragon**. It can be embedded in any Vue 3 application.
 
-[![npm version](https://img.shields.io/badge/npm-0.1.0-blue)](https://www.npmjs.com/package/@tony2y/iiif-viewer)
+[![npm version](https://img.shields.io/badge/npm-0.1.2-blue)](https://www.npmjs.com/package/@tony2y/iiif-viewer)
 [![license](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 [![vue](https://img.shields.io/badge/vue-%5E3.5-42b883)](https://vuejs.org/)
 [![openseadragon](https://img.shields.io/badge/openseadragon-%5E6.0-blue)](https://openseadragon.github.io/)
@@ -22,7 +22,7 @@
 | **IIIF standard**        | IIIF **Image API 2.x / 3.x** (`info.json`); IIIF **Presentation API 2.1 / 3.0** (`manifest.json`, multi-canvas paging); label language mapping, metadata / rights / provider / thumbnail normalization                                                                                                                   |
 | **Input detection**      | Auto-detects an "Image API service base URL", an "`info.json` URL", a "`manifest.json` URL", a "static image URL", or an "OSD tileSource"; when URL heuristics fail it **re-checks the response body** (supports unusual addresses such as `/presentation/{id}`)                                                         |
 | **Image interaction**    | Zoom (wheel / double-click / buttons / keyboard), pan and drag, arbitrary-angle rotation, horizontal flip, reset, fullscreen, built-in OSD navigator                                                                                                                                                                     |
-| **Multi-canvas**         | Previous / next page, page status, thumbnail strip (falls back to the Image API `full/!120,120/0/default.jpg` when a thumbnail is missing); page turns keep the current zoom and pan, with optional `fade` / `zoom-swap` transitions                                                                                     |
+| **Multi-canvas**         | Previous / next page, page status, thumbnail strip (falls back to the Image API `full/!120,120/0/default.jpg` when a thumbnail is missing); page turns keep the current zoom and pan, with optional `fade` / `book-flip` / `zoom-swap` transitions and a vintage book-flipping loader while the new page loads                                                                                     |
 | **Single/double page**   | Single-page / double-page view toggle (toolbar button, `initialDoublePage` prop, and `setDoublePage()` / `toggleDoublePage()`); the index snaps to an even number, paging advances by 2, both pages share the same height and are **flush at the spine**, and the last spread may hold a single page rendered full-width |
 | **Color adjustment**     | Live brightness / contrast / saturation: one toolbar button → a right-side slide-out panel, composed into a single CSS `filter` applied to the canvas (the navigator is unaffected, all three renderers work, no tile refetch)                                                                                           |
 | **Table of contents**    | Parses IIIF `structures` (v2 `ranges` / v3 `items`) into a unified tree; the info panel shows a "Contents / Item information" tab pair; clicking an entry navigates and the current page is highlighted                                                                                                                  |
@@ -538,7 +538,7 @@ const osd = window.OpenSeadragon as typeof import('openseadragon')
 | `osdOptions`        | `Partial<OpenSeadragon.Options>`            | `undefined`                                      | Pass-through / override for native OpenSeadragon options, **highest priority**                                                           |
 | `initialDoublePage` | `boolean`                                   | `false`                                          | Whether to start in double-page view; changing this prop at runtime also toggles it, equivalent to `setDoublePage()`                     |
 | `colorAdjust`       | `boolean`                                   | `true`                                           | Whether to enable brightness / contrast / saturation adjustment; `false` hides the button, renders no panel and clears the canvas filter |
-| `pageTransition`    | `IiifViewerPageTransition`                  | `false`                                          | Page / resource transition: `false` disables, or a `'fade'` / `'zoom-swap'` preset or options object                                     |
+| `pageTransition`    | `IiifViewerPageTransition`                  | `false`                                          | Page / resource transition: `false` disables, or a `'fade'` / `'book-flip'` / `'zoom-swap'` preset or options object                                     |
 | `openseadragon`     | `OpenseadragonNamespace`                    | `undefined`                                      | Explicitly specifies the OpenSeadragon source (defaults to the peerDependency); the injected object goes through `verifyOpenSeadragon()` |
 
 #### Differences from OSD defaults

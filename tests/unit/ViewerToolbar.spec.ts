@@ -123,14 +123,16 @@ describe('ViewerToolbar', () => {
     expect(wrapper.find('button[aria-label="缩略图"]').exists()).toBe(false)
   })
 
-  it('窄容器下保留缩放 / 复位 / 旋转 / 全屏，其余收进「更多」菜单', async () => {
+  it('窄容器下保留缩放 / 复位 / 翻页 / 全屏，其余收进「更多」菜单', async () => {
     const wrapper = mountToolbar({ total: 3, canGoNext: true }, {}, { compact: true })
 
     expect(wrapper.find('button[aria-label="放大"]').exists()).toBe(true)
     expect(wrapper.find('button[aria-label="复位视图"]').exists()).toBe(true)
-    // 旋转是高频操作：直接外置在工具栏上，不收进菜单
-    expect(wrapper.find('button[aria-label="向左旋转"]').exists()).toBe(true)
-    expect(wrapper.find('button[aria-label="向右旋转"]').exists()).toBe(true)
+    // 翻页是阅读多页资源的核心交互：外置在工具栏上，移动端一步可达
+    expect(wrapper.find('button[aria-label="上一页"]').exists()).toBe(true)
+    expect(wrapper.find('button[aria-label="下一页"]').exists()).toBe(true)
+    // 旋转等低频操作收进「更多」菜单
+    expect(wrapper.find('button[aria-label="向左旋转"]').exists()).toBe(false)
 
     const moreButton = wrapper.find('button[aria-label="更多操作"]')
     expect(moreButton.attributes('aria-expanded')).toBe('false')
@@ -142,27 +144,28 @@ describe('ViewerToolbar', () => {
 
     const menuItems = wrapper.findAll('[role="menuitem"]')
     const labels = menuItems.map((item) => item.text())
-    expect(labels).not.toContain('向右旋转')
+    expect(labels).toContain('向左旋转')
+    expect(labels).toContain('向右旋转')
+    expect(labels).not.toContain('下一页')
+    expect(labels).not.toContain('放大')
     expect(labels).toContain('水平翻转')
-    expect(labels).toContain('下一页')
     expect(labels).toContain('缩略图')
 
     await menuItems[0]!.trigger('click')
 
-    expect(wrapper.emitted('action')?.at(-1)?.[0]).toBe('flip-horizontal')
+    expect(wrapper.emitted('action')?.at(-1)?.[0]).toBe('rotate-left')
     // 选择后菜单自动收起
     expect(wrapper.find('[role="menu"]').exists()).toBe(false)
   })
 
-  it('菜单中禁用的项不会派发 action', async () => {
+  it('外置的禁用按钮不派发 action', async () => {
     const wrapper = mountToolbar({ total: 3, page: 0, canGoNext: true }, {}, { compact: true })
 
-    await wrapper.find('button[aria-label="更多操作"]').trigger('click')
+    // 第一页的「上一页」处于禁用态
+    const prev = wrapper.find('button[aria-label="上一页"]')
+    expect(prev.attributes('disabled')).toBeDefined()
 
-    const prev = wrapper.findAll('[role="menuitem"]').find((item) => item.text() === '上一页')
-    expect(prev?.attributes('disabled')).toBeDefined()
-
-    await prev?.trigger('click')
+    await prev.trigger('click')
 
     expect(wrapper.emitted('action')).toBeUndefined()
   })

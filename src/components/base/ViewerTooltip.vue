@@ -6,7 +6,8 @@
  * - 不引入第三方依赖，只用 CSS 定位 + 少量 JS 状态；
  * - 默认 `aria-hidden`：可访问名称由触发元素自身的 `aria-label` 提供，
  *   避免屏幕阅读器把同一文案读两遍；
- * - 同时支持 hover 与 `:focus-visible`（仅键盘聚焦时弹出，鼠标点击不弹）。
+ * - 触屏设备（`hover: none`）完全不弹出：tap 会派发合成 `mouseenter`，
+ *   手指离开后没有对应 `mouseleave`，提示会永久残留，索性不显示。
  */
 import { onBeforeUnmount, ref } from 'vue'
 
@@ -24,6 +25,11 @@ const props = withDefaults(
   { placement: 'top', delay: 400, disabled: false },
 )
 
+/** 仅在支持真实 hover 的指针设备上启用提示（外接鼠标的平板也会视为可 hover） */
+const hoverCapable =
+  typeof window !== 'undefined' &&
+  window.matchMedia('(hover: hover) and (pointer: fine)').matches
+
 const visible = ref(false)
 let timer: ReturnType<typeof setTimeout> | null = null
 
@@ -35,7 +41,7 @@ function clearTimer(): void {
 }
 
 function show(immediate = false): void {
-  if (props.disabled || !props.content) return
+  if (!hoverCapable || props.disabled || !props.content) return
   clearTimer()
   if (immediate) {
     visible.value = true

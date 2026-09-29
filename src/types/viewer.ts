@@ -30,7 +30,7 @@ export type IiifViewerToolbarPosition = 'top' | 'bottom' | 'left' | 'right'
 export type IiifViewerFitMode = 'contain' | 'width' | 'height'
 
 /** 翻页 / 换资源时的过渡预设 */
-export type IiifViewerPageTransitionPreset = 'none' | 'fade' | 'zoom-swap'
+export type IiifViewerPageTransitionPreset = 'none' | 'fade' | 'zoom-swap' | 'book-flip'
 
 /** 色彩调节维度 */
 export type IiifColorAdjustmentKey = 'brightness' | 'contrast' | 'saturation'
@@ -131,7 +131,10 @@ export function resolveToolbarOptions(
  * - `fade`：把当前画面固化为快照盖在上层，新页面就位后淡出。适应面最广，
  *   不依赖缩放状态，也不改变视口；
  * - `zoom-swap`：旧页先轻微缩小，交换内容后回弹。纯 OpenSeadragon 能力实现，
- *   不会丢失当前的缩放与平移位置。
+ *   不会丢失当前的缩放与平移位置；
+ * - `book-flip`：旧页快照绕「书脊」（前进时在左、后退时在右）做 3D 翻转并渐隐，
+ *   露出下方的新页面，观感如掀过一页书。与 `fade` 一样基于快照层实现，
+ *   不依赖缩放状态，也不改变视口。
  */
 export interface IiifViewerPageTransitionOptions {
   /** 预设名，默认 `'fade'` */

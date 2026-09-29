@@ -56,8 +56,8 @@ const PRIMARY_ACTIONS: readonly IiifViewerToolbarAction[] = [
   'zoom-out',
   'zoom-in',
   'reset',
-  'rotate-left',
-  'rotate-right',
+  'prev',
+  'next',
   'fullscreen',
 ]
 
