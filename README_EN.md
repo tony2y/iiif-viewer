@@ -768,13 +768,35 @@ All variables are scoped to `.iiif-viewer` and never leak into the host page. Ov
 |               | `--iiif-line-height`                                                | `1.5`                             | same                    |
 | Motion        | `--iiif-duration-fast` / `--iiif-duration` / `--iiif-duration-slow` | `150ms` / `200ms` / `300ms`       | same                    |
 |               | `--iiif-ease`                                                       | `cubic-bezier(.22,.61,.36,1)`     | same                    |
-| Layering      | `--iiif-z-stage` / `overlay` / `panel` / `toolbar` / `popup`        | `1 / 5 / 15 / 20 / 30`            | same                    |
+| Layering      | `--iiif-z-stage` / `loader` / `overlay` / `panel` / `toolbar` / `popup` | `1 / 2 / 5 / 15 / 20 / 30`        | same                    |
 |               | `--iiif-toolbar-clearance`                                          | `64px`                            | same                    |
 | Focus         | `--iiif-focus-ring`                                                 | double `box-shadow` focus ring    | same                    |
+| Book loader   | `--iiif-loader-cover` / `cover-deep` / `cover-border`               | `#8a4b32` / `#63301e` / `#b08d57` | same (theme-independent) |
+|               | `--iiif-loader-spine-light` / `spine-deep`                          | `#a05a3a` / `#58291a`             | same                    |
+|               | `--iiif-loader-paper` / `paper-flip` / `paper-flip-deep`            | `#f1e3c2` / `#f4e6c4` / `#d9bd8a` | same                    |
+|               | `--iiif-loader-stack`                                               | `#c7a266`                         | same                    |
+|               | `--iiif-loader-shadow-rgb` / `aging-rgb` / `glint-rgb`              | RGB components for `rgb(var(--x) / α)` | same               |
 
 > The side panel (`--iiif-z-panel: 15`) sits deliberately below the floating toolbar (`--iiif-z-toolbar: 20`) so the drawer never covers the toolbar and its buttons stay clickable; panel content additionally leaves `--iiif-toolbar-clearance` (`64px`) of bottom space so it is not occluded by the toolbar.
 >
 > When the system enables "reduce motion", `--iiif-duration-*` drops to `0.01ms` automatically.
+
+The book-flipping loader (shown for resource loading and page-turn waits) uses a **theme-independent** vintage palette by default. Override the `--iiif-loader-*` tokens to reskin it entirely — for example, a slate-blue cover with cool white pages:
+
+```css
+.iiif-viewer {
+  --iiif-loader-cover: #3a5a78;
+  --iiif-loader-cover-deep: #274057;
+  --iiif-loader-cover-border: #8fb0cf;
+  --iiif-loader-paper: #eef2f7;
+  --iiif-loader-paper-flip: #f5f8fb;
+  --iiif-loader-paper-flip-deep: #d5dfe9;
+  --iiif-loader-stack: #b9c6d4;
+  --iiif-loader-shadow-rgb: 30 45 60;
+  --iiif-loader-aging-rgb: 70 90 110;
+  --iiif-loader-glint-rgb: 240 248 255;
+}
+```
 
 ### 5.10 Keyboard shortcuts
 

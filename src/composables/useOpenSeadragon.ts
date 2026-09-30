@@ -734,11 +734,15 @@ export function useOpenSeadragon(options: UseOpenSeadragonOptions): UseOpenSeadr
     })
 
     /**
-     * 新画面的第一块瓦片绘出即视为「翻页完成」。
-     * `tile-drawn` 每帧都会触发，仅在指示器已亮起或处于延迟展示期内处理一次：
-     * 延迟期内完成即取消展示（缓存命中路径），已亮起则按最短展示时长收起。
+     * 新画面的首块瓦片加载完成即视为「翻页完成」。
+     *
+     * 不用 `tile-drawn`：WebGL 绘制器不触发该事件（addHandler 时直接报
+     * "Error adding handler for tile-drawn"），指示器只能等 8s 兜底才收起；
+     * `tile-loaded` 位于瓦片下载层，与绘制器实现无关，与首帧上屏仅差 1~2 帧，
+     * 配合最短展示时长（320ms）观感一致。该事件每块瓦片都会触发，
+     * 仅在指示器已亮起或处于延迟展示期内处理一次。
      */
-    instance.addHandler('tile-drawn', () => {
+    instance.addHandler('tile-loaded', () => {
       if (pageLoading.value || pageLoadingDelayTimer !== null) hidePageLoading()
     })
 

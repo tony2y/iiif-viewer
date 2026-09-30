@@ -764,13 +764,35 @@ interface IiifViewerToolbarOptions {
 |        | `--iiif-line-height`                                                | `1.5`                             | 同                      |
 | 动效   | `--iiif-duration-fast` / `--iiif-duration` / `--iiif-duration-slow` | `150ms` / `200ms` / `300ms`       | 同                      |
 |        | `--iiif-ease`                                                       | `cubic-bezier(.22,.61,.36,1)`     | 同                      |
-| 层级   | `--iiif-z-stage` / `overlay` / `panel` / `toolbar` / `popup`        | `1 / 5 / 15 / 20 / 30`            | 同                      |
+| 层级   | `--iiif-z-stage` / `loader` / `overlay` / `panel` / `toolbar` / `popup` | `1 / 2 / 5 / 15 / 20 / 30`        | 同                      |
 |        | `--iiif-toolbar-clearance`                                          | `64px`                            | 同                      |
 | 焦点   | `--iiif-focus-ring`                                                 | 双层 `box-shadow` 焦点环          | 同                      |
+| 翻书加载 | `--iiif-loader-cover` / `cover-deep` / `cover-border`             | `#8a4b32` / `#63301e` / `#b08d57` | 同（主题无关）          |
+|        | `--iiif-loader-spine-light` / `spine-deep`                          | `#a05a3a` / `#58291a`             | 同                      |
+|        | `--iiif-loader-paper` / `paper-flip` / `paper-flip-deep`            | `#f1e3c2` / `#f4e6c4` / `#d9bd8a` | 同                      |
+|        | `--iiif-loader-stack`                                               | `#c7a266`                         | 同                      |
+|        | `--iiif-loader-shadow-rgb` / `aging-rgb` / `glint-rgb`              | RGB 分量，供 `rgb(var(--x) / α)` 组合透明度 | 同            |
 
 > 侧边面板（`--iiif-z-panel: 15`）刻意低于悬浮工具栏（`--iiif-z-toolbar: 20`），避免抽屉盖住工具栏导致按钮点不到；面板内容底部另留 `--iiif-toolbar-clearance`（`64px`）的空隙，使内容不被工具栏遮挡。
 >
 > 系统开启「减弱动态效果」时，`--iiif-duration-*` 会自动降为 `0.01ms`。
+
+翻书加载指示（资源加载与翻页等待时的古籍翻页动画）的配色**不随暗色 / 亮色主题变化**，默认为一套固定的复古古籍色，可通过覆盖 `--iiif-loader-*` 令牌整体换肤。例如换成「青灰封面 + 冷白纸页」：
+
+```css
+.iiif-viewer {
+  --iiif-loader-cover: #3a5a78;
+  --iiif-loader-cover-deep: #274057;
+  --iiif-loader-cover-border: #8fb0cf;
+  --iiif-loader-paper: #eef2f7;
+  --iiif-loader-paper-flip: #f5f8fb;
+  --iiif-loader-paper-flip-deep: #d5dfe9;
+  --iiif-loader-stack: #b9c6d4;
+  --iiif-loader-shadow-rgb: 30 45 60;
+  --iiif-loader-aging-rgb: 70 90 110;
+  --iiif-loader-glint-rgb: 240 248 255;
+}
+```
 
 ### 5.10 键盘快捷键
 

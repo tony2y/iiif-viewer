@@ -78,6 +78,24 @@
   --iiif-duration-slow: 300ms;
   --iiif-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
 
+  /* ---------- 翻书加载指示（复古古籍配色，主题无关，可整体覆盖） ---------- */
+  /* 皮革封面与烫金细框 */
+  --iiif-loader-cover: #8a4b32;
+  --iiif-loader-cover-deep: #63301e;
+  --iiif-loader-cover-border: #b08d57;
+  /* 书脊渐变的高光 / 暗端 */
+  --iiif-loader-spine-light: #a05a3a;
+  --iiif-loader-spine-deep: #58291a;
+  /* 纸页：待翻纸页、翻动页亮缘 / 暗缘、已翻页堆 */
+  --iiif-loader-paper: #f1e3c2;
+  --iiif-loader-paper-flip: #f4e6c4;
+  --iiif-loader-paper-flip-deep: #d9bd8a;
+  --iiif-loader-stack: #c7a266;
+  /* 投影 / 做旧纹线 / 纸芯高光：RGB 分量，供 rgb(var(--x) / 透明度) 组合透明度 */
+  --iiif-loader-shadow-rgb: 61 42 26;
+  --iiif-loader-aging-rgb: 120 80 40;
+  --iiif-loader-glint-rgb: 255 244 208;
+
   /* ---------- 层级与焦点 ---------- */
   --iiif-z-stage: 1;
   /* 翻页加载指示：浮在画布与快照层之上，但不遮挡覆盖层与工具栏 */
